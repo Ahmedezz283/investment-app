@@ -1,0 +1,8 @@
+_format_version: "3.0"
+services:
+  - name: flowable-service
+    url: http://project-manager-flowable:8080
+    routes:
+      - name: flowable-route
+        paths:
+          - /flowable

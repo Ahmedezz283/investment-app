@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:flowable="http://flowable.org/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" typeLanguage="http://www.w3.org/2001/XMLSchema" expressionLanguage="http://www.w3.org/1999/XPath" targetNamespace="http://www.flowable.org/processdef">
+  <process id="Inv-v3" name="Investment" isExecutable="true">
+    <startEvent id="startEvent1" flowable:formFieldValidation="true"></startEvent>
+    <sequenceFlow id="flowStartToParallel" sourceRef="startEvent1" targetRef="parallelSplit"></sequenceFlow>
+    <parallelGateway id="parallelSplit"></parallelGateway>
+    <serviceTask id="taskNationalId" name="National id validation" flowable:expression="${true}"></serviceTask>
+    <serviceTask id="taskTaxClearance" name="Tax clearance" flowable:expression="${true}"></serviceTask>
+    <sequenceFlow id="flowToNationalId" sourceRef="parallelSplit" targetRef="taskNationalId"></sequenceFlow>
+    <sequenceFlow id="flowToTax" sourceRef="parallelSplit" targetRef="taskTaxClearance"></sequenceFlow>
+    <parallelGateway id="parallelJoin"></parallelGateway>
+    <sequenceFlow id="flowFromTax" sourceRef="taskTaxClearance" targetRef="parallelJoin"></sequenceFlow>
+    <sequenceFlow id="flowFromNationalId" sourceRef="taskNationalId" targetRef="parallelJoin"></sequenceFlow>
+    <exclusiveGateway id="gatewayRiskLevel" name="Risk level?"></exclusiveGateway>
+    <sequenceFlow id="flowMediumHighRisk" name="MEDIUM or HIGH" sourceRef="gatewayRiskLevel" targetRef="taskAssignActor">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${riskLevel == 'MEDIUM' || riskLevel == 'HIGH'}]]></conditionExpression>
+    </sequenceFlow>
+    <scriptTask id="taskAssignActor" name="Assign actor to approve" scriptFormat="javascript" flowable:autoStoreVariables="false"><script><![CDATA[
+// The backend passes the department names as a JSON string because Flowable
+// cannot serialize a JavaScript array received as a process variable.
+var configuredGroups = JSON.parse(approvalGroupsJson);
+var approvalGroups = new java.util.ArrayList();
+for (var i = 0; i < configuredGroups.length; i++) {
+  approvalGroups.add(configuredGroups[i]);
+}
+execution.setVariable('approvalGroups', approvalGroups);
+]]></script></scriptTask>
+    <sequenceFlow id="flowAssignToApprove" sourceRef="taskAssignActor" targetRef="taskApprove"></sequenceFlow>
+    <userTask id="taskApprove" name="Approve company registration" flowable:formFieldValidation="true" flowable:candidateGroups="${approvalGroup}">
+      <multiInstanceLoopCharacteristics isSequential="false" flowable:collection="approvalGroups" flowable:elementVariable="approvalGroup">
+        <completionCondition>${nrOfCompletedInstances >= minApprovalsRequired}</completionCondition>
+      </multiInstanceLoopCharacteristics>
+    </userTask>
+    <serviceTask id="taskEscalate" name="Escalate to the head of the managers" flowable:expression="${true}"></serviceTask>
+    <endEvent id="endEscalation"></endEvent>
+    <sequenceFlow id="flowEscalateToEnd" sourceRef="taskEscalate" targetRef="endEscalation"></sequenceFlow>
+    <sequenceFlow id="flowApproveToDecision" sourceRef="taskApprove" targetRef="gatewayApproved"></sequenceFlow>
+    <exclusiveGateway id="gatewayApproved" name="approved"></exclusiveGateway>
+    <serviceTask id="taskNotifyMissedData" name="notify investor with missed data" flowable:type="http">
+      <extensionElements>
+        <flowable:field name="requestMethod"><flowable:string><![CDATA[POST]]></flowable:string></flowable:field>
+        <flowable:field name="requestUrl"><flowable:string><![CDATA[http://host.docker.internal:3000/notifications/missing-data]]></flowable:string></flowable:field>
+        <flowable:field name="requestBody"><flowable:string><![CDATA[{"investmentRequestId": "${investmentRequestId}", "investorId": "${investorId}"}]]></flowable:string></flowable:field>
+        <flowable:field name="requestBodyEncoding"><flowable:string><![CDATA[UTF-8]]></flowable:string></flowable:field>
+        <flowable:field name="requestHeaders"><flowable:string><![CDATA[{"Content-Type":"application/json"}]]></flowable:string></flowable:field>
+      </extensionElements>
+    </serviceTask>
+    <sequenceFlow id="flowNotifyToEnterData" sourceRef="taskNotifyMissedData" targetRef="taskEnterMissingData"></sequenceFlow>
+    <userTask id="taskEnterMissingData" name="enter the missing data" flowable:formFieldValidation="true"></userTask>
+    <serviceTask id="taskNotifyRejection" name="notify user with rejection" flowable:type="http">
+      <extensionElements>
+        <flowable:field name="requestMethod"><flowable:string><![CDATA[POST]]></flowable:string></flowable:field>
+        <flowable:field name="requestUrl"><flowable:string><![CDATA[http://host.docker.internal:3000/notifications/rejection]]></flowable:string></flowable:field>
+        <flowable:field name="requestBody"><flowable:string><![CDATA[{"investmentRequestId": "${investmentRequestId}", "investorId": "${investorId}"}]]></flowable:string></flowable:field>
+        <flowable:field name="requestBodyEncoding"><flowable:string><![CDATA[UTF-8]]></flowable:string></flowable:field>
+        <flowable:field name="requestHeaders"><flowable:string><![CDATA[{"Content-Type":"application/json"}]]></flowable:string></flowable:field>
+      </extensionElements>
+    </serviceTask>
+    <endEvent id="endRejection"></endEvent>
+    <sequenceFlow id="flowRejectToEnd" sourceRef="taskNotifyRejection" targetRef="endRejection"></sequenceFlow>
+    <serviceTask id="taskCompanyRegistration" name="company registration" flowable:expression="${true}"></serviceTask>
+    <sequenceFlow id="flowRegToNotify" sourceRef="taskCompanyRegistration" targetRef="taskNotifyApproval"></sequenceFlow>
+    <serviceTask id="taskNotifyApproval" name="notify user with registration approval" flowable:type="http">
+      <extensionElements>
+        <flowable:field name="requestMethod"><flowable:string><![CDATA[POST]]></flowable:string></flowable:field>
+        <flowable:field name="requestUrl"><flowable:string><![CDATA[http://host.docker.internal:3000/notifications/approval]]></flowable:string></flowable:field>
+        <flowable:field name="requestBody"><flowable:string><![CDATA[{"investmentRequestId": "${investmentRequestId}", "investorId": "${investorId}"}]]></flowable:string></flowable:field>
+        <flowable:field name="requestBodyEncoding"><flowable:string><![CDATA[UTF-8]]></flowable:string></flowable:field>
+        <flowable:field name="requestHeaders"><flowable:string><![CDATA[{"Content-Type":"application/json"}]]></flowable:string></flowable:field>
+      </extensionElements>
+    </serviceTask>
+    <endEvent id="endApproved"></endEvent>
+    <sequenceFlow id="flowNotifyToEnd" sourceRef="taskNotifyApproval" targetRef="endApproved"></sequenceFlow>
+    <sequenceFlow id="flowJoinToRisk" sourceRef="parallelJoin" targetRef="gatewayRiskLevel"></sequenceFlow>
+    <sequenceFlow id="flowYes" name="yes" sourceRef="gatewayApproved" targetRef="taskCompanyRegistration">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${approved == true}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flowNo" name="no" sourceRef="gatewayApproved" targetRef="taskNotifyRejection">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${approved == false}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flowPending" name="pending" sourceRef="gatewayApproved" targetRef="taskNotifyMissedData">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${approved == null || approved == 'pending'}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flowSlaEscalation" sourceRef="sid-086DC497-DAF7-4651-A568-5D8777B60D6C" targetRef="taskEscalate"></sequenceFlow>
+    <sequenceFlow id="flowDataBackToApprove" sourceRef="taskEnterMissingData" targetRef="taskApprove">
+    </sequenceFlow>
+    <sequenceFlow id="flowLowRisk" name="LOW" sourceRef="gatewayRiskLevel" targetRef="taskCompanyRegistration">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${riskLevel == 'LOW'}]]></conditionExpression>
+    </sequenceFlow>
+    <boundaryEvent id="sid-086DC497-DAF7-4651-A568-5D8777B60D6C" attachedToRef="taskApprove" cancelActivity="true">
+      <timerEventDefinition><timeDuration>${slaDuration}</timeDuration></timerEventDefinition>
+    </boundaryEvent>
+  </process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_Inv-v3">
+    <bpmndi:BPMNPlane bpmnElement="Inv-v3" id="BPMNPlane_Inv-v3">
+      <bpmndi:BPMNShape bpmnElement="startEvent1" id="BPMNShape_startEvent1">
+        <omgdc:Bounds height="30.0" width="30.0" x="0.0" y="325.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="parallelSplit" id="BPMNShape_parallelSplit">
+        <omgdc:Bounds height="40.0" width="40.0" x="80.0" y="320.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="taskNationalId" id="BPMNShape_taskNationalId">
+        <omgdc:Bounds height="60.0" width="100.0" x="170.0" y="230.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="taskTaxClearance" id="BPMNShape_taskTaxClearance">
+        <omgdc:Bounds height="60.0" width="100.0" x="170.0" y="390.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="parallelJoin" id="BPMNShape_parallelJoin">
+        <omgdc:Bounds height="40.0" width="40.0" x="320.0" y="320.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="gatewayRiskLevel" id="BPMNShape_gatewayRiskLevel">
+        <omgdc:Bounds height="40.0" width="40.0" x="559.999967664482" y="324.99998700805077"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="taskAssignActor" id="BPMNShape_taskAssignActor">
+        <omgdc:Bounds height="60.0" width="100.0" x="650.0" y="260.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="taskApprove" id="BPMNShape_taskApprove">
+        <omgdc:Bounds height="60.0" width="100.0" x="800.0" y="260.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="taskEscalate" id="BPMNShape_taskEscalate">
+        <omgdc:Bounds height="60.0" width="100.0" x="760.9999078726477" y="539.999968819322"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="endEscalation" id="BPMNShape_endEscalation">
+        <omgdc:Bounds height="28.0" width="28.0" x="910.9999078726477" y="554.999968819322"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="gatewayApproved" id="BPMNShape_gatewayApproved">
+        <omgdc:Bounds height="40.0" width="40.0" x="949.9998902902103" y="269.99997517094215"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="taskNotifyMissedData" id="BPMNShape_taskNotifyMissedData">
+        <omgdc:Bounds height="60.0" width="100.0" x="1079.999937638644" y="399.99996535480324"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="taskEnterMissingData" id="BPMNShape_taskEnterMissingData">
+        <omgdc:Bounds height="60.0" width="100.0" x="1244.9997124448835" y="259.9999907612806"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="taskNotifyRejection" id="BPMNShape_taskNotifyRejection">
+        <omgdc:Bounds height="60.0" width="100.0" x="1040.0" y="100.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="endRejection" id="BPMNShape_endRejection">
+        <omgdc:Bounds height="28.0" width="28.0" x="1225.0" y="115.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="taskCompanyRegistration" id="BPMNShape_taskCompanyRegistration">
+        <omgdc:Bounds height="60.0" width="100.0" x="1064.999938504774" y="609.9999705515819"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="taskNotifyApproval" id="BPMNShape_taskNotifyApproval">
+        <omgdc:Bounds height="60.0" width="100.0" x="1244.9996405561146" y="609.9999705515819"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="endApproved" id="BPMNShape_endApproved">
+        <omgdc:Bounds height="28.0" width="28.0" x="1280.9995665886381" y="531.9999750554575"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="sid-086DC497-DAF7-4651-A568-5D8777B60D6C" id="BPMNShape_sid-086DC497-DAF7-4651-A568-5D8777B60D6C">
+        <omgdc:Bounds height="31.0" width="31.0" x="795.4998619388949" y="359.99993763864757"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge bpmnElement="flowYes" id="BPMNEdge_flowYes">
+        <omgdi:waypoint x="969.9998902902103" y="309.94712598495767"></omgdi:waypoint>
+        <omgdi:waypoint x="969.9998902902103" y="639.9999705515819"></omgdi:waypoint>
+        <omgdi:waypoint x="1064.9999385046472" y="639.9999705515819"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flowAssignToApprove" id="BPMNEdge_flowAssignToApprove">
+        <omgdi:waypoint x="749.9499999998728" y="290.0"></omgdi:waypoint>
+        <omgdi:waypoint x="799.9999999997658" y="290.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flowRejectToEnd" id="BPMNEdge_flowRejectToEnd">
+        <omgdi:waypoint x="1139.95" y="130.0"></omgdi:waypoint>
+        <omgdi:waypoint x="1152.0" y="130.0"></omgdi:waypoint>
+        <omgdi:waypoint x="1152.0" y="130.0"></omgdi:waypoint>
+        <omgdi:waypoint x="1225.0009032674604" y="129.16033465473282"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flowJoinToRisk" id="BPMNEdge_flowJoinToRisk">
+        <omgdi:waypoint x="359.14466426858485" y="340.798"></omgdi:waypoint>
+        <omgdi:waypoint x="559.9999693785006" y="344.99998916796267"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flowEscalateToEnd" id="BPMNEdge_flowEscalateToEnd">
+        <omgdi:waypoint x="860.9499078726466" y="569.5613723280939"></omgdi:waypoint>
+        <omgdi:waypoint x="911.0004326739221" y="569.1223327484515"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flowNotifyToEnd" id="BPMNEdge_flowNotifyToEnd">
+        <omgdi:waypoint x="1294.999616949472" y="609.9999705515819"></omgdi:waypoint>
+        <omgdi:waypoint x="1294.9995665886381" y="559.9499113509931"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flowStartToParallel" id="BPMNEdge_flowStartToParallel">
+        <omgdi:waypoint x="29.94999747176033" y="340.0"></omgdi:waypoint>
+        <omgdi:waypoint x="80.0" y="340.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flowFromTax" id="BPMNEdge_flowFromTax">
+        <omgdi:waypoint x="269.95000000000005" y="420.0"></omgdi:waypoint>
+        <omgdi:waypoint x="282.0" y="420.0"></omgdi:waypoint>
+        <omgdi:waypoint x="282.0" y="340.0"></omgdi:waypoint>
+        <omgdi:waypoint x="320.0" y="340.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flowRegToNotify" id="BPMNEdge_flowRegToNotify">
+        <omgdi:waypoint x="1164.9499385043955" y="639.9999705515819"></omgdi:waypoint>
+        <omgdi:waypoint x="1244.9996405561146" y="639.9999705515819"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flowMediumHighRisk" id="BPMNEdge_flowMediumHighRisk">
+        <omgdi:waypoint x="579.999967664482" y="324.99998700805077"></omgdi:waypoint>
+        <omgdi:waypoint x="579.999967664482" y="290.0"></omgdi:waypoint>
+        <omgdi:waypoint x="649.9999999999768" y="290.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flowFromNationalId" id="BPMNEdge_flowFromNationalId">
+        <omgdi:waypoint x="269.9499999999838" y="260.0"></omgdi:waypoint>
+        <omgdi:waypoint x="282.0" y="260.0"></omgdi:waypoint>
+        <omgdi:waypoint x="282.0" y="340.0"></omgdi:waypoint>
+        <omgdi:waypoint x="320.0" y="340.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flowNotifyToEnterData" id="BPMNEdge_flowNotifyToEnterData">
+        <omgdi:waypoint x="1179.949937638644" y="429.99996535480324"></omgdi:waypoint>
+        <omgdi:waypoint x="1269.9997124448835" y="429.99996535480324"></omgdi:waypoint>
+        <omgdi:waypoint x="1269.9997124448835" y="319.9499907612806"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flowSlaEscalation" id="BPMNEdge_flowSlaEscalation">
+        <omgdi:waypoint x="811.4586287544813" y="391.9498858003206"></omgdi:waypoint>
+        <omgdi:waypoint x="811.0770914905728" y="539.999968819322"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flowPending" id="BPMNEdge_flowPending">
+        <omgdi:waypoint x="989.9371802020673" y="289.99997517094215"></omgdi:waypoint>
+        <omgdi:waypoint x="1048.3808567766102" y="289.99997517094215"></omgdi:waypoint>
+        <omgdi:waypoint x="1048.3808567766102" y="429.99996535480324"></omgdi:waypoint>
+        <omgdi:waypoint x="1079.999937638633" y="429.99996535480324"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flowToNationalId" id="BPMNEdge_flowToNationalId">
+        <omgdi:waypoint x="119.91892523364481" y="340.0"></omgdi:waypoint>
+        <omgdi:waypoint x="132.0" y="340.0"></omgdi:waypoint>
+        <omgdi:waypoint x="132.0" y="260.0"></omgdi:waypoint>
+        <omgdi:waypoint x="169.99999999997692" y="260.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flowApproveToDecision" id="BPMNEdge_flowApproveToDecision">
+        <omgdi:waypoint x="899.949999984285" y="289.9999896545498"></omgdi:waypoint>
+        <omgdi:waypoint x="949.9998941520258" y="289.9999792987759"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flowToTax" id="BPMNEdge_flowToTax">
+        <omgdi:waypoint x="119.91892523364481" y="340.0"></omgdi:waypoint>
+        <omgdi:waypoint x="132.0" y="340.0"></omgdi:waypoint>
+        <omgdi:waypoint x="132.0" y="420.0"></omgdi:waypoint>
+        <omgdi:waypoint x="169.99999999997692" y="420.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flowNo" id="BPMNEdge_flowNo">
+        <omgdi:waypoint x="969.9998902902103" y="269.99997517094215"></omgdi:waypoint>
+        <omgdi:waypoint x="969.9998902902103" y="130.0"></omgdi:waypoint>
+        <omgdi:waypoint x="1039.9999999999832" y="130.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flowLowRisk" id="BPMNEdge_flowLowRisk">
+        <omgdi:waypoint x="579.999967664482" y="364.946606797764"></omgdi:waypoint>
+        <omgdi:waypoint x="579.999967664482" y="639.9999705515819"></omgdi:waypoint>
+        <omgdi:waypoint x="1064.9999385045253" y="639.9999705515819"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>

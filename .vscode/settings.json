@@ -1,0 +1,7 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "psql": true,
+        "docker exec": true,
+        "docker compose": true
+    }
+}

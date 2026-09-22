@@ -1,0 +1,299 @@
+{
+  "imports": [
+    "investment-approval/dictionaries"
+  ],
+  "contentType": "graph",
+  "nodes": [
+    {
+      "id": "zeTzAlzk",
+      "type": "inputNode",
+      "name": "Investment",
+      "content": {
+        "schema": "{\"type\":\"object\",\"properties\":{\"investmentAmount\":{\"type\":\"number\",\"description\":\"Requested investment amount\"},\"approvalGroup\":{\"$dictionary\":\"approvalGroup\",\"description\":\"Approval group currently holding the task, used to resolve escalation on SLA breach\",\"type\":[\"string\",\"null\"]},\"approvalsReceived\":{\"type\":[\"number\",\"null\"],\"description\":\"Approvals collected so far from the approval group\"},\"nationalIdVerified\":{\"type\":[\"boolean\",\"null\"],\"description\":\"Result of the parallel National ID verification service call\"},\"taxCleared\":{\"type\":[\"boolean\",\"null\"],\"description\":\"Result of the parallel tax clearance check\"},\"slaBreached\":{\"type\":[\"boolean\",\"null\"],\"description\":\"Set by the SLA timer boundary event when the approval task overruns\"}},\"required\":[\"investmentAmount\"]}"
+      },
+      "position": {
+        "x": 100,
+        "y": 0
+      }
+    },
+    {
+      "id": "WVymJeCz",
+      "type": "decisionTableNode",
+      "name": "riskEvaluation",
+      "content": {
+        "hitPolicy": "first",
+        "passThrough": true,
+        "executionMode": "single",
+        "inputs": [
+          {
+            "id": "6fc04e9a-24ab-4995-997e-35bef5eab8cc",
+            "name": "Investment amount",
+            "field": "investmentAmount"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "346f7932-a274-4041-a23d-93610721c3be",
+            "name": "Risk level",
+            "field": "riskLevel",
+            "type": "riskLevel"
+          }
+        ],
+        "rules": [
+          {
+            "_id": "991aff3d-e441-4526-a9c9-bbe04877feca",
+            "6fc04e9a-24ab-4995-997e-35bef5eab8cc": "< 50000",
+            "346f7932-a274-4041-a23d-93610721c3be": "\"LOW\"",
+            "_description": "under 50K"
+          },
+          {
+            "_id": "aa59a5d7-cb26-474e-91fe-5d419bc8c2ad",
+            "6fc04e9a-24ab-4995-997e-35bef5eab8cc": "< 250000",
+            "346f7932-a274-4041-a23d-93610721c3be": "\"MEDIUM\"",
+            "_description": "50K to under 250K"
+          },
+          {
+            "_id": "86fb0cd4-312c-43fa-a5a9-cbe29478e825",
+            "6fc04e9a-24ab-4995-997e-35bef5eab8cc": "",
+            "346f7932-a274-4041-a23d-93610721c3be": "\"HIGH\"",
+            "_description": "250K and above"
+          }
+        ]
+      },
+      "position": {
+        "x": 400,
+        "y": 0
+      }
+    },
+    {
+      "id": "MigtgbaE",
+      "type": "decisionTableNode",
+      "name": "approvalPolicy",
+      "content": {
+        "hitPolicy": "first",
+        "passThrough": true,
+        "executionMode": "single",
+        "inputs": [
+          {
+            "id": "e42a68f2-f475-470c-bbdc-ad807ecda3a2",
+            "name": "Risk level",
+            "field": "riskLevel"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "92eb74c4-7023-4dfc-85ca-f6c77e7f12b5",
+            "name": "Approval required",
+            "field": "approvalRequired",
+            "type": "boolean"
+          },
+          {
+            "id": "dbe4f8c0-6a59-4f50-bd55-41bf34060db1",
+            "name": "Min approvals required",
+            "field": "minApprovalsRequired",
+            "type": "number"
+          },
+          {
+            "id": "a7d6eef7-c0e1-4a39-a66f-ce32b16d2f14",
+            "name": "SLA hours",
+            "field": "slaHours",
+            "type": "number"
+          }
+        ],
+        "rules": [
+          {
+            "_id": "3a682cf6-124f-4555-81ef-5efc527b3d57",
+            "e42a68f2-f475-470c-bbdc-ad807ecda3a2": "\"LOW\"",
+            "92eb74c4-7023-4dfc-85ca-f6c77e7f12b5": "false",
+            "dbe4f8c0-6a59-4f50-bd55-41bf34060db1": "",
+            "a7d6eef7-c0e1-4a39-a66f-ce32b16d2f14": ""
+          },
+          {
+            "_id": "62916835-7e2e-446a-b2a8-b1e7dac7bb07",
+            "e42a68f2-f475-470c-bbdc-ad807ecda3a2": "\"MEDIUM\"",
+            "92eb74c4-7023-4dfc-85ca-f6c77e7f12b5": "true",
+            "dbe4f8c0-6a59-4f50-bd55-41bf34060db1": "3",
+            "a7d6eef7-c0e1-4a39-a66f-ce32b16d2f14": "24"
+          },
+          {
+            "_id": "0e7155f9-5155-4f2a-9626-06c5ff1d7001",
+            "e42a68f2-f475-470c-bbdc-ad807ecda3a2": "\"HIGH\"",
+            "92eb74c4-7023-4dfc-85ca-f6c77e7f12b5": "true",
+            "dbe4f8c0-6a59-4f50-bd55-41bf34060db1": "3",
+            "a7d6eef7-c0e1-4a39-a66f-ce32b16d2f14": "48"
+          }
+        ]
+      },
+      "position": {
+        "x": 700,
+        "y": 0
+      }
+    },
+    {
+      "id": "kzlMv48k",
+      "type": "expressionNode",
+      "name": "verificationStatus",
+      "content": {
+        "passThrough": true,
+        "executionMode": "single",
+        "expressions": [
+          {
+            "id": "6pqKiq0p",
+            "key": "verificationComplete",
+            "value": "(nationalIdVerified ?? false) and (taxCleared ?? false)"
+          }
+        ]
+      },
+      "position": {
+        "x": 1000,
+        "y": 0
+      }
+    },
+    {
+      "id": "9tRFfWLt",
+      "type": "decisionTableNode",
+      "name": "approvalDecision",
+      "content": {
+        "hitPolicy": "first",
+        "passThrough": true,
+        "executionMode": "single",
+        "inputs": [
+          {
+            "id": "e4e04468-7e58-4cbe-ab03-f91e2d9e02da",
+            "name": "Approval required",
+            "field": "approvalRequired"
+          },
+          {
+            "id": "9e62ddb4-4e45-4ccd-a370-ab93ddd7bf4b",
+            "name": "Approvals received",
+            "field": "approvalsReceived ?? 0"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "cbc32186-f124-482c-b389-66162c9b7e51",
+            "name": "Outcome",
+            "field": "approvalOutcome",
+            "type": "approvalOutcome"
+          }
+        ],
+        "rules": [
+          {
+            "_id": "5f87d6a5-a50e-43ca-a674-cf103d4d6c38",
+            "e4e04468-7e58-4cbe-ab03-f91e2d9e02da": "false",
+            "9e62ddb4-4e45-4ccd-a370-ab93ddd7bf4b": "",
+            "cbc32186-f124-482c-b389-66162c9b7e51": "\"AUTO_APPROVED\"",
+            "_description": "low risk, no approval needed"
+          },
+          {
+            "_id": "0d66171b-1a13-445a-a63d-a94f437a9a7e",
+            "e4e04468-7e58-4cbe-ab03-f91e2d9e02da": "true",
+            "9e62ddb4-4e45-4ccd-a370-ab93ddd7bf4b": ">= 3",
+            "cbc32186-f124-482c-b389-66162c9b7e51": "\"APPROVED\"",
+            "_description": "at least 3 of 5 groups approved"
+          },
+          {
+            "_id": "2116a657-db1b-4c06-b6a4-77028616e81e",
+            "e4e04468-7e58-4cbe-ab03-f91e2d9e02da": "true",
+            "9e62ddb4-4e45-4ccd-a370-ab93ddd7bf4b": "",
+            "cbc32186-f124-482c-b389-66162c9b7e51": "\"PENDING\"",
+            "_description": "still waiting on approvals"
+          }
+        ]
+      },
+      "position": {
+        "x": 1300,
+        "y": 0
+      }
+    },
+    {
+      "id": "L6B6yQ7b",
+      "type": "decisionTableNode",
+      "name": "escalationTarget",
+      "content": {
+        "hitPolicy": "first",
+        "passThrough": true,
+        "executionMode": "single",
+        "inputs": [
+          {
+            "id": "71647725-602d-4d7e-8058-d5a066de08ca",
+            "name": "Approval group",
+            "field": "approvalGroup"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "6420201e-9a83-4119-bd64-b105759fc738",
+            "name": "Escalation target",
+            "field": "escalationTarget",
+            "type": "escalationTarget"
+          }
+        ],
+        "rules": [
+          {
+            "_id": "4037e7f4-ffe9-4fca-bbe9-ae742ea038f9",
+            "71647725-602d-4d7e-8058-d5a066de08ca": "\"GROUP_1\"",
+            "6420201e-9a83-4119-bd64-b105759fc738": "\"HEAD_GROUP_1\""
+          },
+          {
+            "_id": "5c62da46-1d27-4b70-936c-73c997fbc75b",
+            "71647725-602d-4d7e-8058-d5a066de08ca": "\"GROUP_2\"",
+            "6420201e-9a83-4119-bd64-b105759fc738": "\"HEAD_GROUP_2\""
+          },
+          {
+            "_id": "51de8577-ffba-47e6-8563-ac69c4a9d10c",
+            "71647725-602d-4d7e-8058-d5a066de08ca": "\"GROUP_3\"",
+            "6420201e-9a83-4119-bd64-b105759fc738": "\"HEAD_GROUP_3\""
+          },
+          {
+            "_id": "10bc76aa-65be-4066-a2f6-6e3c9609ff98",
+            "71647725-602d-4d7e-8058-d5a066de08ca": "\"GROUP_4\"",
+            "6420201e-9a83-4119-bd64-b105759fc738": "\"HEAD_GROUP_4\""
+          },
+          {
+            "_id": "c8d13364-47e0-4a53-944b-c04dcb26b12e",
+            "71647725-602d-4d7e-8058-d5a066de08ca": "\"GROUP_5\"",
+            "6420201e-9a83-4119-bd64-b105759fc738": "\"HEAD_GROUP_5\""
+          },
+          {
+            "_id": "084d8150-9522-4216-8ce8-02b10af90b08",
+            "71647725-602d-4d7e-8058-d5a066de08ca": "",
+            "6420201e-9a83-4119-bd64-b105759fc738": "\"HEAD_DEFAULT\"",
+            "_description": "no group set yet"
+          }
+        ]
+      },
+      "position": {
+        "x": 1600,
+        "y": 0
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "kDiNSIqx",
+      "sourceId": "zeTzAlzk",
+      "targetId": "WVymJeCz"
+    },
+    {
+      "id": "GG8QipyX",
+      "sourceId": "WVymJeCz",
+      "targetId": "MigtgbaE"
+    },
+    {
+      "id": "jhLjFwij",
+      "sourceId": "MigtgbaE",
+      "targetId": "kzlMv48k"
+    },
+    {
+      "id": "pbFzN9xk",
+      "sourceId": "kzlMv48k",
+      "targetId": "9tRFfWLt"
+    },
+    {
+      "id": "Apoyw7MF",
+      "sourceId": "9tRFfWLt",
+      "targetId": "L6B6yQ7b"
+    }
+  ]
+}
