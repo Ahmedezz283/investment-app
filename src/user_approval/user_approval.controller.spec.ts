@@ -29,8 +29,19 @@ describe('UserApprovalController', () => {
     expect(userApprovalService.recordDecision).not.toHaveBeenCalled();
   });
 
+  it('rejects investors identified by the authenticated role list', () => {
+    expect(() =>
+      controller.decide(
+        'request-id',
+        { decision: ApprovalDecision.APPROVED },
+        { id: 'investor-id', role: 'Manager', roles: ['Investor'] } as any,
+      ),
+    ).toThrow(ForbiddenException);
+    expect(userApprovalService.recordDecision).not.toHaveBeenCalled();
+  });
+
   it('records the decision for the authenticated non-investor', () => {
-    controller.decide(
+    void controller.decide(
       'request-id',
       { decision: ApprovalDecision.APPROVED },
       { id: 'approver-id', role: 'Manager' } as any,

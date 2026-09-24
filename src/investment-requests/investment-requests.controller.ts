@@ -14,6 +14,19 @@ export class InvestmentRequestsController {
     return this.investmentRequestsService.create(dto);
   }
 
+  @Post('evaluate')
+  evaluate(@Body() body: { ruleName: string; context: Record<string, any> }) {
+    return this.investmentRequestsService.evaluate(body.ruleName, body.context ?? {});
+  }
+
+  @Post(':id/start-flow')
+  startFlow(
+    @Param('id') id: string,
+    @Body() body: { ruleName?: string; evaluation?: Record<string, any> },
+  ) {
+    return this.investmentRequestsService.startFlow(id, body.ruleName, body.evaluation);
+  }
+
   @Get(':id/process')
   async getProcess(@Param('id') id: string) {
     const request = await this.investmentRequestsService.findOne(id);

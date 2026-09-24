@@ -1,71 +1,63 @@
-import { BadGatewayException, Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { Gorule } from "./gorules.entity.js";
+import { Repository } from "typeorm";
+import { InjectRepository } from "@nestjs/typeorm";
+import { ZenEngine } from "@gorules/zen-engine";
 
-export type GoRulesValue = string | number | boolean | null;
-export type GoRulesContext = Record<string, GoRulesValue>;
+export type GoRulesContext = Record<string, any>;
 
 @Injectable()
 export class GoRulesService {
-  constructor(private readonly configService: ConfigService) { }
+  private readonly engine: ZenEngine;
 
-  async evaluate(context: GoRulesContext): Promise<GoRulesContext> {
-    const evaluateUrl = this.configService.get<string>('GORULES_API_URL');
-    const authorization = this.configService.get<string>('GORULES_AUTH');
-    const authHeader =
-      this.configService.get<string>('GORULES_AUTH_HEADER') ?? 'X-API-KEY';
-
-    if (!evaluateUrl) {
-      throw new BadGatewayException(
-        'GoRules configuration is incomplete. Set GORULES_API_URL.',
-      );
-    }
-
-    const headers = new Headers({ 'Content-Type': 'application/json' });
-    if (authorization) {
-      headers.set(authHeader, authorization);
-    }
-    console.log('GoRules request debug:', {
-      url: evaluateUrl,
-      authHeader,
-      authorization,
+  constructor(
+    @InjectRepository(Gorule)
+    private readonly repo: Repository<Gorule>,
+  ) {
+    this.engine = new ZenEngine({
+      loader: async (key: string) => {
+        const rule = await this.repo.findOne({ where: { name: key } });
+        if (!rule) {
+          throw new Error(`Imported policy '${key}' not found in database.`);
+        }
+        return Buffer.from(JSON.stringify(rule.content), "utf8");
+      }
     });
-
-    let response: Response;
-    try {
-      response = await fetch(
-        evaluateUrl,
-        {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({ context }),
-        },
-      );
-    } catch {
-      throw new BadGatewayException('Unable to connect to GoRules');
-    }
-
-    if (!response.ok) {
-      const message = await response.text();
-      throw new BadGatewayException(
-        `GoRules request failed (${response.status}): ${message || response.statusText}`,
-      );
-    }
-
-    const payload = (await response.json()) as unknown;
-    return this.extractResult(payload);
   }
 
-  private extractResult(payload: unknown): GoRulesContext {
-    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-      throw new BadGatewayException('GoRules returned an invalid response');
+  async uploadFromFile(name: string, fileBuffer: Buffer): Promise<Gorule> {
+    let content: Record<string, any>;
+    try {
+      content = JSON.parse(fileBuffer.toString('utf8'));
+    } catch {
+      throw new BadRequestException('File must contain valid JSON');
     }
 
-    const body = payload as Record<string, unknown>;
-    const result = body.result ?? body.output ?? body.data ?? body;
-    if (!result || typeof result !== 'object' || Array.isArray(result)) {
-      throw new BadGatewayException('GoRules returned no decision result');
-    }
+    this.removeDictionary(content);
 
-    return result as GoRulesContext;
+    let rule = await this.repo.findOne({ where: { name } });
+    if (rule) {
+      rule.content = content;
+    } else {
+      rule = this.repo.create({ name, content });
+    }
+    return this.repo.save(rule);
+  }
+
+  async evaluate(name: string, context: Record<string, any>) {
+    const rule = await this.repo.findOne({ where: { name } });
+    if (!rule) throw new NotFoundException(`Rule '${name}' not found`);
+
+    const decision = this.engine.createDecision(rule.content);
+    const response = await decision.evaluate(context);
+    return response.result;
+  }
+
+  private removeDictionary(obj: any) {
+    if (!obj || typeof obj !== 'object') return;
+    for (const key of Object.keys(obj)) {
+      if (key === '\$dictionary') delete obj[key];
+      else this.removeDictionary(obj[key]);
+    }
   }
 }

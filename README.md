@@ -74,28 +74,34 @@ SMTP_PASSWORD=your-smtp-password
 SMTP_FROM=notifications@example.com
 ```
 
-Investment creation evaluates GoRules before starting the Flowable process. Add these variables to `.env`:
+Investment creation is split into three APIs:
 
-```env
-GORULES_API_URL=https://your-workspace.us1.gorules.io/api/rules/default/evaluate/investment-approval/rules
-GORULES_AUTH=your-api-key
-GORULES_AUTH_HEADER=X-API-KEY
+```text
+POST /investment-requests
+POST /investment-requests/evaluate
+POST /investment-requests/:id/start-flow
 ```
 
-The backend sends this GoRules request:
+The first API only saves the investment request as `DRAFT`. The evaluation API
+accepts `{ "ruleName": "investment-approval", "context": { ... } }` and
+evaluates the matching rule saved in the database. The start-flow API accepts a
+`ruleName` to evaluate again, or an `evaluation` object returned by the
+evaluation API, and then starts Flowable.
 
-```json
-{
-  "context": {
-    "investmentAmount": 250000
-  }
-}
+Rules can be uploaded as JSON through:
+
+```text
+POST /gorules/upload
+Content-Type: multipart/form-data
+file=<rule JSON file>
+name=<database rule name>
 ```
 
-The configured GoRules endpoint is called directly with:
-`POST ${GORULES_API_URL}`.
+ZenEngine resolves imported policies by database rule name, so imported rule
+files must also be uploaded and saved under the exact name used in `imports`.
 
-The response can be a direct object or an object under `result`, `output`, or `data`. Its fields are merged with the investment data and sent as Flowable variables. For example, a response containing `riskLevel`, `approvalRequired`, `minApprovalsRequired`, and `slaHours` will be available to the BPMN process under those names.
+Investment creation no longer calls an external GoRules service. The old
+GoRules environment variables are not required for this flow.
 
 ## Deployment
 

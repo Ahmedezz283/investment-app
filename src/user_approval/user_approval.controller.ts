@@ -16,7 +16,11 @@ export class UserApprovalController {
     @Body() dto: CreateUserApprovalDto,
     @CurrentUser() currentUser: AuthenticatedUser,
   ) {
-    if (currentUser.role.trim().toLowerCase() === 'investor') {
+    const roles = [currentUser.role, ...(currentUser.roles ?? [])]
+      .filter(Boolean)
+      .map((role) => role.trim().toLowerCase());
+
+    if (roles.includes('investor')) {
       throw new ForbiddenException('Investors cannot approve investment requests.');
     }
 

@@ -24,6 +24,7 @@
     "frontend:build": "npm --prefix frontend run build"
   },
   "dependencies": {
+    "@gorules/zen-engine": "^2.0.2",
     "@keycloak/keycloak-admin-client": "^26.7.4",
     "@nestjs/common": "^12.0.1",
     "@nestjs/config": "^12.0.0",
@@ -39,6 +40,8 @@
     "jsonwebtoken": "^9.0.3",
     "jwks-rsa": "^4.1.0",
     "kafkajs": "^2.2.4",
+    "multer": "^2.4.0",
+    "node-zendesk": "^6.0.1",
     "nodemailer": "^10.0.10",
     "open": "^11.0.4",
     "pg": "^8.23.0",

@@ -4,6 +4,7 @@ import { NOTIFICATIONS_KAFKA_CLIENT } from './../kafka/kafka.module.js';
 
 @Injectable()
 export class NotificationsService implements OnModuleInit {
+  logger: any;
   constructor(
     @Inject(NOTIFICATIONS_KAFKA_CLIENT) private readonly kafkaClient: ClientKafka,
   ) {}
@@ -12,7 +13,7 @@ export class NotificationsService implements OnModuleInit {
     this.kafkaClient.subscribeToResponseOf('investment.notification.missing-data');
     this.kafkaClient.subscribeToResponseOf('investment.notification.rejection');
     this.kafkaClient.subscribeToResponseOf('investment.notification.approval');
-    await this.kafkaClient.connect();
+    this.kafkaClient.connect().catch((e) => this.logger.error('Kafka client connect failed', e));
   }
 
   publishMissingData(investmentRequestId: string, investorId?: string) {

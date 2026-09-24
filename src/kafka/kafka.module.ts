@@ -21,6 +21,7 @@ export const NOTIFICATIONS_KAFKA_CLIENT = 'NOTIFICATIONS_KAFKA_CLIENT';
       },
     ]),
   ],
+  
   exports: [ClientsModule],
 })
 export class KafkaModule {}

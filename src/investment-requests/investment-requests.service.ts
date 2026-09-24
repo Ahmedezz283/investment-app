@@ -1,12 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Department } from '../department/departments.entity.js';
-import {
-  InvestmentRequest,
-  InvestmentRequestStatus,
-  RiskLevel,
-} from './investment-requests.entity.js';
+import { InvestmentRequest, InvestmentRequestStatus, RiskLevel,} from './investment-requests.entity.js';
 import { CreateInvestmentRequestDto } from './dto/create-investment-dto.js';
 import { UpdateInvestmentRequestDto } from './dto/update-investment-dto.js';
 import { FlowableService } from '../flowable/flowable.service.js';
@@ -23,19 +19,38 @@ export class InvestmentRequestsService {
     private readonly goRulesService: GoRulesService,
   ) { }
 
-  async create(dto: CreateInvestmentRequestDto): Promise<InvestmentRequest> {
-    const goRulesResponse = await this.goRulesService.evaluate({
-      investmentAmount: dto.amount,
-    });
-    const request = this.investmentRequestsRepository.create(dto);
-    // if (
-    //   goRulesResponse.riskLevel === 'LOW' ||
-    //   goRulesResponse.riskLevel === 'MEDIUM' ||
-    //   goRulesResponse.riskLevel === 'HIGH'
-    // ) {
-    // }
-    request.riskLevel = goRulesResponse.riskLevel as RiskLevel;
-    const savedRequest = await this.investmentRequestsRepository.save(request);
+  create(dto: CreateInvestmentRequestDto): Promise<InvestmentRequest> {
+    return this.investmentRequestsRepository.save(
+      this.investmentRequestsRepository.create({
+        ...dto,
+        status: InvestmentRequestStatus.DRAFT,
+        riskLevel: null,
+        flowableProcessInstanceId: null,
+      }),
+    );
+  }
+
+  evaluate(ruleName: string, context: GoRulesContext) {
+    return this.goRulesService.evaluate(ruleName, context);
+  }
+
+  async startFlow(
+    id: string,
+    ruleName: string | undefined,
+    evaluation: GoRulesContext | undefined,
+  ): Promise<InvestmentRequest> {
+    const savedRequest = await this.findOne(id);
+    const goRulesResponse = evaluation ?? (ruleName
+      ? await this.evaluate(ruleName, { investmentAmount: savedRequest.amount })
+      : undefined);
+
+    if (!goRulesResponse) {
+      throw new BadRequestException('Provide ruleName or an evaluation result');
+    }
+
+    if (goRulesResponse.riskLevel) {
+      savedRequest.riskLevel = goRulesResponse.riskLevel as RiskLevel;
+    }
     const departments = await this.departmentRepository.find({
       order: { name: 'ASC' },
     });
@@ -57,15 +72,19 @@ export class InvestmentRequestsService {
       companyName: savedRequest.companyName,
       amount: savedRequest.amount,
     }, null, 2));
+    const variables = Object.entries(flowableContext)
+      .filter(([, value]) => value === null || typeof value !== 'object')
+      .map(([name, value]) => ({
+        name,
+        value: value as string | number | boolean | null,
+        ...(value !== null && {
+          type: typeof value === 'number' ? 'double' : typeof value,
+        }),
+      }));
+
     const process = await this.flowableService.startInvestmentProcess(
       savedRequest.id,
-      Object.entries(flowableContext)
-        .filter(([, value]) => value === null || typeof value !== 'object')
-        .map(([name, value]) => ({
-          name,
-          value,
-          ...(value !== null && { type: typeof value === 'number' ? 'double' : typeof value }),
-        })),
+      variables,
     );
 
     savedRequest.flowableProcessInstanceId = process.id;
