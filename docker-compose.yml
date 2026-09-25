@@ -86,10 +86,21 @@ services:
       - "8080:8080"
     volumes:
       - flowable_data:/opt/tomcat/flowable-db
+    depends_on:
+      flowable-data-init:
+        condition: service_completed_successfully
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
       - app-network
+
+  flowable-data-init:
+    image: flowable/all-in-one
+    user: "0:0"
+    entrypoint: ["sh", "-c"]
+    command: ["chown -R 1000:1000 /opt/tomcat/flowable-db"]
+    volumes:
+      - flowable_data:/opt/tomcat/flowable-db
 
   kong:
     image: kong:latest

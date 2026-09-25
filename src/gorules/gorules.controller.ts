@@ -9,7 +9,6 @@ export class GorulesController {
   constructor(private readonly gorulesService: GoRulesService) {}
 
   @Post('upload')
-  @ApiOperation({ summary: 'Upload a GoRules JSON file and save it under a name' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -34,7 +33,6 @@ export class GorulesController {
   }
 
   @Post(':name/evaluate')
-  @ApiOperation({ summary: 'Evaluate input data against a stored rule' })
   @ApiParam({ name: 'name', description: 'Rule name used at upload' })
   @ApiBody({
     schema: {

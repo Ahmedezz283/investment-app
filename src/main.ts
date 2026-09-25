@@ -21,9 +21,19 @@ async function bootstrap() {
 
   app.useGlobalFilters(new AllExceptionsFilter());
 
+
+   const config = new DocumentBuilder()
+    .setTitle('Project Manager API')
+    .setDescription('Users, Projects, Tasks, and UserTasks')
+    .setVersion('1.0')
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, document);
+
+
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
-  
+
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.KAFKA,
     options: {
@@ -36,15 +46,6 @@ async function bootstrap() {
       },
     },
   });
-
-
-  const config = new DocumentBuilder()
-    .setTitle('Project Manager API')
-    .setDescription('Users, Projects, Tasks, and UserTasks')
-    .setVersion('1.0')
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
 
   app.startAllMicroservices()
     .then(() => Logger.log('Kafka consumer joined group'))
