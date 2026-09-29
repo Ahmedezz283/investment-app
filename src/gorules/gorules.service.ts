@@ -17,12 +17,17 @@ export class GoRulesService {
     this.engine = new ZenEngine({
       loader: async (key: string) => {
         const rule = await this.repo.findOne({ where: { name: key } });
+        //console.log(`${key}`)
         if (!rule) {
           throw new Error(`Imported policy '${key}' not found in database.`);
         }
         return Buffer.from(JSON.stringify(rule.content), "utf8");
       }
     });
+  }
+
+  findAll(): Promise<GoRulesContext[]> {
+    return this.repo.find();
   }
 
   async uploadFromFile(name: string, fileBuffer: Buffer): Promise<Gorule> {
@@ -49,6 +54,7 @@ export class GoRulesService {
     if (!rule) throw new NotFoundException(`Rule '${name}' not found`);
 
     const decision = this.engine.createDecision(rule.content);
+    //console.log(rule.content)
     const response = await decision.evaluate(context);
     return response.result;
   }

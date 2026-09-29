@@ -1,0 +1,89 @@
+<!-- Created with Jaspersoft Studio version 7.0.8.final using JasperReports Library version 7.0.8-6f896111  -->
+<jasperReport name="investment" language="groovy" columnCount="1" pageWidth="842" pageHeight="599" whenNoDataType="AllSectionsNoDetail" columnWidth="802" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="27dc1289-d84b-4653-9938-4b67c08d9df6">
+	<style name="Title" forecolor="#1A1A1A" fontName="SansSerif" fontSize="22.0" bold="true"/>
+	<style name="Column header" forecolor="#333333" fontName="SansSerif" fontSize="11.0" bold="true"/>
+	<style name="Detail" fontName="SansSerif" fontSize="11.0"/>
+	<parameter name="investmentRequestId" class="java.lang.String"/>
+	<parameter name="notificationType" class="java.lang.String"/>
+	<field name="company_name" class="java.lang.String"/>
+	<field name="amount" class="java.math.BigDecimal"/>
+	<field name="status" class="java.lang.String"/>
+	<field name="risk_level" class="java.lang.String"/>
+	<field name="created_at" class="java.util.Date"/>
+	<field name="approval_decision" class="java.lang.String"/>
+	<field name="approver_name" class="java.lang.String"/>
+	<field name="department_name" class="java.lang.String"/>
+	<title height="88" splitType="Stretch">
+		<element kind="staticText" uuid="c144846a-c24a-4429-81e8-f7a3f299b696" x="0" y="0" width="802" height="60" hTextAlign="Center" vTextAlign="Middle" style="Title">
+			<box topPadding="0" leftPadding="0" bottomPadding="0" rightPadding="0" style="Title"/>
+			<text><![CDATA[Investment Request Report]]></text>
+		</element>
+		<element kind="textField" uuid="7e2f328c-1eec-4e67-918e-bd74f8a75f0d" x="0" y="62" width="802" height="20" fontName="SansSerif" fontSize="11.0" hTextAlign="Center">
+			<expression><![CDATA[($P{notificationType} == null ? "Investment" : $P{notificationType}) + " report | Request ID: " + ($P{investmentRequestId} == null ? "" : $P{investmentRequestId})]]></expression>
+		</element>
+	</title>
+	<columnHeader height="34" splitType="Stretch">
+		<element kind="staticText" uuid="072279db-1f34-4ae3-9ad7-d20b77ca605f" x="0" y="0" width="102" height="34" hTextAlign="Center" style="Column header">
+			<text><![CDATA[Company]]></text>
+		</element>
+		<element kind="staticText" uuid="2c16f56d-32f4-46fe-ad15-2e3e78b7c65d" x="102" y="0" width="100" height="34" hTextAlign="Center" style="Column header">
+			<text><![CDATA[Amount]]></text>
+		</element>
+		<element kind="staticText" uuid="69d9abab-adc3-42da-98d3-f908fdd7bdc4" x="202" y="0" width="100" height="34" hTextAlign="Center" style="Column header">
+			<text><![CDATA[Status]]></text>
+		</element>
+		<element kind="staticText" uuid="8950e971-090b-4052-a035-68d84676408b" x="302" y="0" width="100" height="34" hTextAlign="Center" style="Column header">
+			<text><![CDATA[Risk]]></text>
+		</element>
+		<element kind="staticText" uuid="eda594f8-ff40-4305-b594-64edace214ee" x="402" y="0" width="100" height="34" hTextAlign="Center" style="Column header">
+			<text><![CDATA[Created]]></text>
+		</element>
+		<element kind="staticText" uuid="48ebf05d-1a0e-434a-9758-405ee95f821b" x="502" y="0" width="100" height="34" fontName="SansSerif" bold="true" hTextAlign="Center">
+			<text><![CDATA[Approver]]></text>
+		</element>
+		<element kind="staticText" uuid="016ddc76-7321-4780-ba63-acd95f76facb" x="602" y="0" width="100" height="34" fontName="SansSerif" bold="true" hTextAlign="Center">
+			<text><![CDATA[Decision]]></text>
+		</element>
+		<element kind="staticText" uuid="a33bdd9a-ace3-4aa2-b208-15683c5a4716" x="702" y="0" width="100" height="34" fontName="SansSerif" bold="true" hTextAlign="Center">
+			<text><![CDATA[Department]]></text>
+		</element>
+		<property name="com.jaspersoft.studio.layout" value="com.jaspersoft.studio.editor.layout.HorizontalRowLayout"/>
+	</columnHeader>
+	<detail>
+		<band height="30" splitType="Stretch">
+			<element kind="textField" uuid="86f32755-2ebe-4c6e-85ed-cc6629c69c1e" x="0" y="0" width="102" height="30" hTextAlign="Center" style="Detail">
+				<expression><![CDATA[$F{company_name}]]></expression>
+			</element>
+			<element kind="textField" uuid="a4eae4d6-56b5-4a4c-8d8a-895ed742935d" x="102" y="0" width="100" height="30" pattern="#,##0.00" hTextAlign="Center" style="Detail">
+				<expression><![CDATA[$F{amount}]]></expression>
+			</element>
+			<element kind="textField" uuid="d633d368-2f46-42b8-9ac6-00118fe128af" x="202" y="0" width="100" height="30" hTextAlign="Center" style="Detail">
+				<expression><![CDATA[$F{status}]]></expression>
+			</element>
+			<element kind="textField" uuid="9bf852e6-69f8-4cea-88aa-70f4f2c5af49" x="302" y="0" width="100" height="30" hTextAlign="Center" style="Detail">
+				<expression><![CDATA[$F{risk_level}]]></expression>
+			</element>
+			<element kind="textField" uuid="43387ee7-1bdd-41ae-b60b-19aff32f1486" x="402" y="0" width="100" height="30" pattern="dd/MM/yyyy" hTextAlign="Center" style="Detail">
+				<expression><![CDATA[$F{created_at}]]></expression>
+			</element>
+			<element kind="textField" uuid="a94304a1-b032-4167-904e-e6637a2f93ef" x="502" y="0" width="100" height="30" hTextAlign="Center" style="Detail">
+				<expression><![CDATA[$F{approver_name}]]></expression>
+			</element>
+			<element kind="textField" uuid="db4ff081-d1f5-433d-a785-2e871f7f1832" x="602" y="0" width="100" height="30" hTextAlign="Center" style="Detail">
+				<expression><![CDATA[$F{approval_decision}]]></expression>
+			</element>
+			<element kind="textField" uuid="d95d0a02-8094-4955-bd01-de8324a7b5b7" x="702" y="0" width="100" height="30" hTextAlign="Center" style="Detail">
+				<expression><![CDATA[$F{department_name}]]></expression>
+			</element>
+			<property name="com.jaspersoft.studio.layout" value="com.jaspersoft.studio.editor.layout.HorizontalRowLayout"/>
+		</band>
+	</detail>
+	<pageFooter height="20" splitType="Stretch">
+		<element kind="textField" uuid="a6c57d59-dc89-4fe2-b2b9-7d60f1506f84" x="0" y="0" width="200" height="20" fontSize="10.0" pattern="EEEEE dd MMMMM yyyy" style="Column header">
+			<expression><![CDATA[new java.util.Date()]]></expression>
+		</element>
+		<element kind="textField" uuid="72e46227-9790-400a-a67d-2c0528e0bff3" x="400" y="0" width="155" height="20" fontSize="10.0" hTextAlign="Right" style="Column header">
+			<expression><![CDATA["Page " + $V{PAGE_NUMBER}]]></expression>
+		</element>
+	</pageFooter>
+</jasperReport>

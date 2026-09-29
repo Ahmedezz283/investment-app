@@ -1,4 +1,4 @@
-import {BadRequestException,Body,Controller,Param,Post,UploadedFile,UseInterceptors,} from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, Post, UploadedFile, UseInterceptors, } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBody, ApiConsumes, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { GoRulesService } from './gorules.service.js';
@@ -6,7 +6,13 @@ import { GoRulesService } from './gorules.service.js';
 @ApiTags('GoRules')
 @Controller('gorules')
 export class GorulesController {
-  constructor(private readonly gorulesService: GoRulesService) {}
+  constructor(private readonly gorulesService: GoRulesService) { }
+
+
+  @Get()
+  getall() {
+    return this.gorulesService.findAll();
+  }
 
   @Post('upload')
   @ApiConsumes('multipart/form-data')

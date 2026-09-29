@@ -11,4 +11,7 @@ export class CreateInvestmentRequestDto {
   @IsNumber()
   @IsPositive()
   amount: number;
+
+  @IsString()
+  ruleName: string;
 }

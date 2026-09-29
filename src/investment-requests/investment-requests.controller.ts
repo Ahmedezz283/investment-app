@@ -1,4 +1,4 @@
-import { Body,Controller,Delete,Get,Param,Patch,Post,} from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, } from '@nestjs/common';
 import { InvestmentRequestsService } from './investment-requests.service.js';
 import { CreateInvestmentRequestDto } from './dto/create-investment-dto.js';
 import { UpdateInvestmentRequestDto } from './dto/update-investment-dto.js';
@@ -7,11 +7,15 @@ import { UpdateInvestmentRequestDto } from './dto/update-investment-dto.js';
 export class InvestmentRequestsController {
   constructor(
     private readonly investmentRequestsService: InvestmentRequestsService,
-  ) {}
+  ) { }
 
   @Post()
-  create(@Body() dto: CreateInvestmentRequestDto) {
-    return this.investmentRequestsService.create(dto);
+  async create(@Body() dto: CreateInvestmentRequestDto) {
+    const request = await this.investmentRequestsService.create(dto);
+    return this.investmentRequestsService.startFlow(request.id,
+      dto.ruleName ?? 'investment-approval',
+      undefined,
+    );
   }
 
   @Post('evaluate')
@@ -50,6 +54,14 @@ export class InvestmentRequestsController {
   @Get()
   findAll() {
     return this.investmentRequestsService.findAll();
+  }
+
+  @Post(':id/report')
+  requestReport(
+    @Param('id') id: string,
+    @Body() body: { templateName?: string },
+  ) {
+    return this.investmentRequestsService.requestReport(id, undefined, body?.templateName);
   }
 
   @Get(':id')

@@ -43,6 +43,8 @@ async function bootstrap() {
       },
       consumer: {
         groupId: 'investment-notifications-consumer',
+        maxBytesPerPartition: 10 * 1024 * 1024,
+        maxBytes: 10 * 1024 * 1024,
       },
     },
   });

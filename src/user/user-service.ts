@@ -49,9 +49,13 @@ export class UserService {
   }
 
   async updateRole(id: string, role: string): Promise<User> {
-    await this.userRepository.update(id, { role });
-    return this.findOne(id);
+  const user = await this.findByIdOrKeycloakId(id);
+  if (!user) {
+    throw new NotFoundException(`User with id ${id} not found`);
   }
+  user.role = role;
+  return this.userRepository.save(user);
+}
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
     await this.userRepository.update(id, updateUserDto);

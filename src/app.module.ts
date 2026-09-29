@@ -11,6 +11,7 @@ import { UserApprovalModule } from './user_approval/user_approval.module.js';
 import { FlowableModule } from './flowable/flowable.module.js';
 import { GoRulesModule } from './gorules/gorules.module.js';
 import { NotificationModule } from './notification/notification.module.js';
+import { JasperTemplatesModule } from './jasper-templates/jasper-templates.module.js';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { NotificationModule } from './notification/notification.module.js';
     FlowableModule,
     GoRulesModule,
     NotificationModule,
+    JasperTemplatesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,14 +1,23 @@
 import { Controller, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EventPattern, Payload } from '@nestjs/microservices';
+import { isEmail } from 'class-validator';
 import { Repository } from 'typeorm';
 import { User } from '../user/user-entity.js';
 import { KeycloakAdminService } from '../keycloak/keycloak-admin-service.js';
+import { InvestmentRequestsService } from '../investment-requests/investment-requests.service.js';
 import { MailService } from './mail.service.js';
 
 interface NotificationEvent {
   investmentRequestId: string;
   investorId?: string;
+}
+
+interface RenderedReportEvent {
+  investmentRequestId: string;
+  recipientEmail: string;
+  notificationType: 'APPROVAL' | 'REJECTION' | 'REPORT';
+  pdfBase64: string;
 }
 
 @Controller()
@@ -20,6 +29,7 @@ export class NotificationsConsumer {
     private readonly userRepository: Repository<User>,
     private readonly keycloakAdminService: KeycloakAdminService,
     private readonly mailService: MailService,
+    private readonly investmentRequestsService: InvestmentRequestsService,
   ) {}
 
   @EventPattern('investment.notification.missing-data')
@@ -30,14 +40,80 @@ export class NotificationsConsumer {
 
   @EventPattern('investment.notification.rejection')
   handleRejection(@Payload() data: NotificationEvent) {
-    return this.sendEmailSafely(data, 'Investment request rejected',
-      `Your investment request ${data.investmentRequestId} was rejected.`);
+    return this.sendReportSafely(data, 'REJECTION');
   }
 
   @EventPattern('investment.notification.approval')
   handleApproval(@Payload() data: NotificationEvent) {
-    return this.sendEmailSafely(data, 'Investment request approved',
-      `Your investment request ${data.investmentRequestId} was approved.`);
+    return this.sendReportSafely(data, 'APPROVAL');
+  }
+
+  @EventPattern('investment.report.rendered')
+  handleRenderedReport(@Payload() data: RenderedReportEvent) {
+    return this.sendRenderedReport(data);
+  }
+
+  private async sendRenderedReport(data: RenderedReportEvent): Promise<void> {
+    try {
+      if (
+        !data ||
+        !this.isUuid(data.investmentRequestId) ||
+        !isEmail(data.recipientEmail) ||
+        !['APPROVAL', 'REJECTION', 'REPORT'].includes(data.notificationType) ||
+        typeof data.pdfBase64 !== 'string'
+      ) {
+        throw new Error('Invalid Jasper rendered-report event');
+      }
+
+      const pdf = Buffer.from(data.pdfBase64, 'base64');
+      if (pdf.subarray(0, 5).toString() !== '%PDF-') {
+        throw new Error('Jasper report payload is not a valid PDF');
+      }
+
+      const decision = data.notificationType === 'APPROVAL'
+        ? 'approved'
+        : data.notificationType === 'REJECTION'
+          ? 'rejected'
+          : 'available';
+      await this.mailService.sendReportNotification(
+        data.recipientEmail,
+        data.notificationType === 'REPORT'
+          ? 'Investment request report'
+          : `Investment request ${decision}`,
+        data.notificationType === 'REPORT'
+          ? `The report for investment request ${data.investmentRequestId} is attached.`
+          : `Your investment request ${data.investmentRequestId} was ${decision}. The Jasper report is attached.`,
+        pdf,
+        `investment-${data.investmentRequestId}-${data.notificationType.toLowerCase()}.pdf`,
+      );
+      this.logger.log(
+        `Sent ${data.notificationType.toLowerCase()} report email for request ${data.investmentRequestId}`,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to email Jasper report: ${message}`);
+      throw error;
+    }
+  }
+
+  private async sendReportSafely(
+    data: NotificationEvent,
+    notificationType: 'APPROVAL' | 'REJECTION',
+  ): Promise<void> {
+    try {
+      await this.investmentRequestsService.requestReport(
+        data.investmentRequestId,
+        notificationType,
+      );
+      this.logger.log(
+        `Queued ${notificationType.toLowerCase()} report for request ${data.investmentRequestId}`,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `Report delivery failed for request ${data.investmentRequestId}: ${message}`,
+      );
+    }
   }
 
   private async sendEmailSafely(

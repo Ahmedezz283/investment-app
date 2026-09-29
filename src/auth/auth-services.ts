@@ -37,6 +37,12 @@ export class AuthService {
       });
 
       if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({})) as { error?: string; error_description?: string };
+        const errorDescription = errorBody?.error_description || '';
+
+        if (errorDescription.toLowerCase().includes('account is not fully set up')) {
+          throw new UnauthorizedException('Please verify your email before logging in.');
+        }
         throw new UnauthorizedException('Invalid username or password');
       }
 
@@ -65,12 +71,15 @@ export class AuthService {
       registerDto.lastName,
     );
   } catch (error: any) {
+    if (error instanceof ConflictException) {
+      throw new ConflictException('User with this username or email already exists');
+    }
     if (error instanceof HttpException) {
       throw error;
     }
-    if (error?.response?.status === 409) {
-      throw new ConflictException('User with this username or email already exists');
-    }
+    // if (error?.response?.status === 409) {
+    //   throw new ConflictException('User with this username or email already exists');
+    // }
     throw new BadRequestException(
       error?.response?.data?.errorMessage || error.message || 'Failed to create user in Keycloak',
     );
@@ -79,7 +88,7 @@ export class AuthService {
   try {
     const localUser = await this.userService.create({
       keycloakId,
-      name: `${registerDto.firstName} ${registerDto.lastName}`,
+      name: registerDto.username,
       role: registerDto.role ?? 'Investor',
       National_ID: registerDto.National_ID,
       IsAssigned: registerDto.IsAssigned ?? false,

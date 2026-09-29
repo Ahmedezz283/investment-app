@@ -16,11 +16,20 @@ export class UserApprovalController {
     @Body() dto: CreateUserApprovalDto,
     @CurrentUser() currentUser: AuthenticatedUser,
   ) {
+    const ignoredRoles = new Set([
+      'investor',
+      'default-roles-investment',
+      'offline_access',
+      'uma_authorization',
+    ]);
+
     const roles = [currentUser.role, ...(currentUser.roles ?? [])]
       .filter(Boolean)
       .map((role) => role.trim().toLowerCase());
 
-    if (roles.includes('investor')) {
+    const hasNonInvestorRole = roles.some((role) => !ignoredRoles.has(role));
+
+    if (!hasNonInvestorRole) {
       throw new ForbiddenException('Investors cannot approve investment requests.');
     }
 

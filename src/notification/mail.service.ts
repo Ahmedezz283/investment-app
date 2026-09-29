@@ -25,12 +25,7 @@ export class MailService {
     subject: string,
     text: string,
   ): Promise<unknown> {
-    const host = this.configService.get<string>('SMTP_HOST');
-    const user = this.configService.get<string>('SMTP_USER');
-    const password = this.configService.get<string>('SMTP_PASSWORD');
-    if (!host || !user || !password) {
-      throw new ServiceUnavailableException('SMTP configuration is incomplete');
-    }
+    this.assertSmtpConfigured();
 
     return this.transporter.sendMail({
       from: this.configService.get<string>('SMTP_FROM') ?? this.configService.get<string>('SMTP_USER'),
@@ -38,5 +33,36 @@ export class MailService {
       subject,
       text,
     });
+  }
+
+  sendReportNotification(
+    recipient: string,
+    subject: string,
+    text: string,
+    pdf: Buffer,
+    filename: string,
+  ): Promise<unknown> {
+    this.assertSmtpConfigured();
+
+    return this.transporter.sendMail({
+      from: this.configService.get<string>('SMTP_FROM') ?? this.configService.get<string>('SMTP_USER'),
+      to: recipient,
+      subject,
+      text,
+      attachments: [{
+        filename,
+        content: pdf,
+        contentType: 'application/pdf',
+      }],
+    });
+  }
+
+  private assertSmtpConfigured(): void {
+    const host = this.configService.get<string>('SMTP_HOST');
+    const user = this.configService.get<string>('SMTP_USER');
+    const password = this.configService.get<string>('SMTP_PASSWORD');
+    if (!host || !user || !password) {
+      throw new ServiceUnavailableException('SMTP configuration is incomplete');
+    }
   }
 }

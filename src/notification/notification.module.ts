@@ -7,9 +7,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../user/user-entity.js';
 import { KeycloakModule } from '../keycloak/keycloak-module.js';
 import { MailService } from './mail.service.js';
+import { InvestmentRequestsModule } from '../investment-requests/investment-requests.module.js';
 
 @Module({
-  imports: [KafkaModule, TypeOrmModule.forFeature([User]), KeycloakModule],
+  imports: [KafkaModule, TypeOrmModule.forFeature([User]), KeycloakModule, InvestmentRequestsModule],
   controllers: [NotificationsController, NotificationsConsumer],
   providers: [NotificationsService, MailService],
 })
