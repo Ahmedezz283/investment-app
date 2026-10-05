@@ -1,19 +1,18 @@
-import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
 import { NOTIFICATIONS_KAFKA_CLIENT } from './../kafka/kafka.module.js';
 
 @Injectable()
 export class NotificationsService implements OnModuleInit {
-  logger: any;
+  private readonly logger = new Logger(NotificationsService.name);
   constructor(
     @Inject(NOTIFICATIONS_KAFKA_CLIENT) private readonly kafkaClient: ClientKafka,
   ) {}
 
   async onModuleInit() {
-    this.kafkaClient.subscribeToResponseOf('investment.notification.missing-data');
-    this.kafkaClient.subscribeToResponseOf('investment.notification.rejection');
-    this.kafkaClient.subscribeToResponseOf('investment.notification.approval');
-    this.kafkaClient.connect().catch((e) => this.logger.error('Kafka client connect failed', e));
+    return this.kafkaClient
+      .connect()
+      .catch((error) => this.logger.error('Kafka client connect failed', error));
   }
 
   publishMissingData(investmentRequestId: string, investorId?: string) {

@@ -11,11 +11,14 @@ import { UserApprovalModule } from './user_approval/user_approval.module.js';
 import { FlowableModule } from './flowable/flowable.module.js';
 import { GoRulesModule } from './gorules/gorules.module.js';
 import { NotificationModule } from './notification/notification.module.js';
-import { JasperTemplatesModule } from './jasper-templates/jasper-templates.module.js';
+import { JasperModule } from './jasper/jasper.module.js';
+import { InvestmentRequest } from './investment-requests/investment-requests.entity.js';
+import { JasperTemplate } from './jasper/jasper-template.entity.js';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    TypeOrmModule.forFeature([JasperTemplate, InvestmentRequest]),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST ?? 'localhost',
@@ -36,9 +39,9 @@ import { JasperTemplatesModule } from './jasper-templates/jasper-templates.modul
     FlowableModule,
     GoRulesModule,
     NotificationModule,
-    JasperTemplatesModule,
+    JasperModule, 
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService], 
 })
 export class AppModule {}

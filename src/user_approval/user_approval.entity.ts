@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
@@ -30,12 +31,14 @@ export class UserApproval {
   userId: string;
 
   @ManyToOne(() => User)
+  @JoinColumn({ name: 'user_id' })
   user: Relation<User>;
 
   @Column({ name: 'department_id', type: 'uuid' })
   departmentId: string;
 
-  @ManyToOne(() => Department)
+  @ManyToOne(() => Department)  
+  @JoinColumn({ name: 'department_id' })
   department: Relation<Department>;
 
   @Column({ type: 'enum', enum: ApprovalDecision })

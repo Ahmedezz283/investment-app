@@ -14,7 +14,7 @@ import { User } from '../user/user-entity.js';
 import { UserApproval } from '../user_approval/user_approval.entity.js';
 import { KeycloakAdminService } from '../keycloak/keycloak-admin-service.js';
 import { NOTIFICATIONS_KAFKA_CLIENT } from '../kafka/kafka.module.js';
-import { JasperTemplatesService } from '../jasper-templates/jasper-templates.service.js';
+//import { JasperTemplatesService } from '../jasper-templates/jasper-templates.service.js';
 
 interface InvestmentReportRow extends Record<string, unknown> {
   company_name: string;
@@ -41,7 +41,7 @@ export class InvestmentRequestsService {
     private readonly keycloakAdminService: KeycloakAdminService,
     @Inject(NOTIFICATIONS_KAFKA_CLIENT)
     private readonly kafkaClient: ClientKafka,
-    private readonly jasperTemplatesService: JasperTemplatesService,
+    //private readonly jasperTemplatesService: JasperTemplatesService,
     private readonly configService: ConfigService,
   ) { }
 
@@ -258,18 +258,18 @@ export class InvestmentRequestsService {
     const reportType = notificationType ?? 'REPORT';
     const selectedTemplate = templateName?.trim()
       || this.configService.get<string>('JASPER_TEMPLATE_NAME', 'investment');
-    const pdf = await this.jasperTemplatesService.render(selectedTemplate, {
-      investmentRequestId: request.id,
-      notificationType: reportType,
-      rows,
-    });
+    // const pdf = await this.jasperTemplatesService.render(selectedTemplate, {
+      // investmentRequestId: request.id,
+      // notificationType: reportType,
+      // rows,
+    // });
 
     await firstValueFrom(
       this.kafkaClient.emit('investment.report.rendered', {
         investmentRequestId: request.id,
         recipientEmail: keycloakUser.email,
         notificationType: reportType,
-        pdfBase64: pdf.toString('base64'),
+       // pdfBase64: pdf.toString('base64'),
       }),
     );
 
