@@ -1,0 +1,163 @@
+{
+  "title": "Investment Approval Dictionaries",
+  "blocks": [
+    {
+      "id": "6c324ba2-c6ee-40ee-a2d7-298f0c5d665d",
+      "type": "heading",
+      "props": {
+        "level": 1
+      },
+      "content": [
+        {
+          "text": "Overview",
+          "type": "text",
+          "styles": {}
+        }
+      ]
+    },
+    {
+      "id": "63879c59-32af-4b63-9ec3-0802c0352365",
+      "type": "paragraph",
+      "props": {},
+      "content": [
+        {
+          "text": "Shared value sets referenced by the investment risk evaluation and approval workflow rules.",
+          "type": "text",
+          "styles": {}
+        }
+      ]
+    },
+    {
+      "id": "4a74c083-8165-4a25-a8cf-02b3c1eba62e",
+      "type": "dictionary",
+      "props": {
+        "data": {
+          "name": "riskLevel",
+          "entries": [
+            {
+              "id": "00828ae3-29f3-4871-b0d1-dd9fa265c443",
+              "label": "Low risk",
+              "value": "LOW"
+            },
+            {
+              "id": "484b0e44-bd0c-4c1e-83e9-c2ef80f571bc",
+              "label": "Medium risk",
+              "value": "MEDIUM"
+            },
+            {
+              "id": "bb8d8548-4396-4e09-bdf5-c739c4d03771",
+              "label": "High risk",
+              "value": "HIGH"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ac253efa-4e55-4714-904b-be8aaad7345f",
+      "type": "dictionary",
+      "props": {
+        "data": {
+          "name": "approvalGroup",
+          "entries": [
+            {
+              "id": "2257818c-a9fc-48d1-a2fa-457e28ee65a8",
+              "label": "Approval Group 1",
+              "value": "GROUP_1"
+            },
+            {
+              "id": "94ca533e-d86d-4287-8993-e9be4dfb3c54",
+              "label": "Approval Group 2",
+              "value": "GROUP_2"
+            },
+            {
+              "id": "17544452-8e29-4b03-9ae6-2af6aaa7c153",
+              "label": "Approval Group 3",
+              "value": "GROUP_3"
+            },
+            {
+              "id": "92cc51c7-2d11-4834-8f0f-c6bbc6f70b3b",
+              "label": "Approval Group 4",
+              "value": "GROUP_4"
+            },
+            {
+              "id": "22285dbf-9fbe-49a6-8dc2-af1725efa1ac",
+              "label": "Approval Group 5",
+              "value": "GROUP_5"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "38075d1c-dd27-41fb-88a4-a191da6a620f",
+      "type": "dictionary",
+      "props": {
+        "data": {
+          "name": "approvalOutcome",
+          "entries": [
+            {
+              "id": "b2898e9a-dacd-45b2-b7bb-8bcebc801cd6",
+              "label": "Auto-approved (no approval required)",
+              "value": "AUTO_APPROVED"
+            },
+            {
+              "id": "376f23e0-1163-4b3f-ba6b-55db517dfe36",
+              "label": "Approved",
+              "value": "APPROVED"
+            },
+            {
+              "id": "f89882ac-b96d-40f8-a9e1-bf5f12e0de7f",
+              "label": "Pending approvals",
+              "value": "PENDING"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ac6fe2c3-0396-419a-b8e1-b310521bf512",
+      "type": "dictionary",
+      "props": {
+        "data": {
+          "name": "escalationTarget",
+          "entries": [
+            {
+              "id": "946c1a4f-59ca-4c4e-98f8-2f72947e7ec2",
+              "label": "Head of Managers - Group 1",
+              "value": "HEAD_GROUP_1"
+            },
+            {
+              "id": "9f284c43-b007-4de8-ba25-80464bcbfddc",
+              "label": "Head of Managers - Group 2",
+              "value": "HEAD_GROUP_2"
+            },
+            {
+              "id": "f106e8ca-9adb-40e0-88aa-a604d48fc7d2",
+              "label": "Head of Managers - Group 3",
+              "value": "HEAD_GROUP_3"
+            },
+            {
+              "id": "fb35efaf-6500-4d9d-a399-de7e2195ad47",
+              "label": "Head of Managers - Group 4",
+              "value": "HEAD_GROUP_4"
+            },
+            {
+              "id": "fe6a1844-805f-4e69-b19a-c6db28951bda",
+              "label": "Head of Managers - Group 5",
+              "value": "HEAD_GROUP_5"
+            },
+            {
+              "id": "129be3c0-72d4-4a86-8654-31f74c66d2e6",
+              "label": "Head of Managers",
+              "value": "HEAD_DEFAULT"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "imports": [],
+  "contentType": "policy",
+  "description": "Shared enumerations used by the investment risk & approval rules."
+}

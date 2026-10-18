@@ -1,7 +1,9 @@
-import { BadRequestException, Body, Controller, Get, Param, Post, UploadedFile, UseInterceptors, } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { BadRequestException, Body, Controller, Get, Param, Post, UploadedFile, UploadedFiles, UseInterceptors, } from '@nestjs/common';
+import { FileFieldsInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import { ApiBody, ApiConsumes, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { GoRulesService } from './gorules.service.js';
+import type { MulterFile } from './../jasper/types/multer-file.type.js';
+
 
 @ApiTags('GoRules')
 @Controller('gorules')
@@ -20,22 +22,53 @@ export class GorulesController {
     schema: {
       type: 'object',
       properties: {
-        name: { type: 'string', description: 'Rule name used later to evaluate it' },
-        file: { type: 'string', format: 'binary', description: 'GoRules decision JSON file' },
+        name: {
+          type: 'string',
+          description: 'Rule name used later to evaluate it',
+        },
+        ruleFile: {
+          type: 'string',
+          format: 'binary',
+          description: 'GoRules decision JSON file',
+        },
+        dictionaryFile: {
+          type: 'string',
+          format: 'binary',
+          description: 'Dictionary JSON file',
+        },
       },
-      required: ['name', 'file'],
+      required: ['name', 'ruleFile', 'dictionaryFile'],
     },
   })
-  @UseInterceptors(FileInterceptor('file'))
-  async upload(
-    @UploadedFile() file: { buffer: Buffer } | undefined,
-    @Body() body: { name?: string },
-  ) {
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'ruleFile', maxCount: 1 },
+      { name: 'dictionaryFile', maxCount: 1 },
+    ]),
+  )
+    async upload(
+      @UploadedFiles()
+      files: {
+        ruleFile?: MulterFile[];
+        dictionaryFile?: MulterFile[];
+      },
+      @Body() body: { name?: string },
+    ) {
     const name = body.name?.trim();
-    if (!file || !name) {
-      throw new BadRequestException('Send a rule name (name) and a JSON file (file)');
+    const ruleFile = files.ruleFile?.[0];
+    const dictionaryFile = files.dictionaryFile?.[0];
+
+    if (!name || !ruleFile || !dictionaryFile) {
+      throw new BadRequestException(
+        'Send a rule name (name), a rule JSON (ruleFile) and a dictionary JSON (dictionaryFile)',
+      );
     }
-    return this.gorulesService.uploadFromFile(name, file.buffer);
+
+    return this.gorulesService.uploadFromFiles(
+      name,
+      ruleFile.buffer,
+      dictionaryFile.buffer,
+    );
   }
 
   @Post(':name/evaluate')

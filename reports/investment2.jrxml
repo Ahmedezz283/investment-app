@@ -1,0 +1,181 @@
+<jasperReport name="investment2" language="java" pageWidth="595" pageHeight="842" whenNoDataType="AllSectionsNoDetail" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+<style name="SubTitle" forecolor="#CCCCCC" fontName="Serif" fontSize="18" isBold="false"/>
+<style name="ColumnHeader" forecolor="#666666" fontName="Serif" fontSize="14" isBold="true"/>
+<style name="Label" fontName="Serif" fontSize="11" isBold="true"/>
+<style name="Detail" fontName="Serif" fontSize="10"/>
+<parameter name="investmentRequestId" class="java.lang.String"/>
+<parameter name="notificationType" class="java.lang.String"/>
+<field name="company_name" class="java.lang.String"/>
+<field name="amount" class="java.math.BigDecimal"/>
+<field name="status" class="java.lang.String"/>
+<field name="risk_level" class="java.lang.String"/>
+<field name="created_at" class="java.lang.String"/>
+<field name="approval_decision" class="java.lang.String"/>
+<field name="approver_name" class="java.lang.String"/>
+<field name="department_name" class="java.lang.String"/>
+<group name="InvestmentGroup">
+<groupExpression>"investment"</groupExpression>
+<groupHeader>
+<band height="104">
+<staticText>
+<reportElement x="0" y="0" width="111" height="22" style="Label"/>
+<text>Company</text>
+</staticText>
+<staticText>
+<reportElement x="111" y="0" width="111" height="22" style="Label"/>
+<text>Amount</text>
+</staticText>
+<staticText>
+<reportElement x="222" y="0" width="111" height="22" style="Label"/>
+<text>Status</text>
+</staticText>
+<staticText>
+<reportElement x="333" y="0" width="111" height="22" style="Label"/>
+<text>Risk</text>
+</staticText>
+<staticText>
+<reportElement x="444" y="0" width="111" height="22" style="Label"/>
+<text>Created</text>
+</staticText>
+<textField isBlankWhenNull="true">
+<reportElement x="0" y="22" width="111" height="24" style="Detail"/>
+<textFieldExpression>$F{company_name}</textFieldExpression>
+</textField>
+<textField isBlankWhenNull="true" pattern="#,##0.00">
+<reportElement x="111" y="22" width="111" height="24" style="Detail"/>
+<textFieldExpression>$F{amount}</textFieldExpression>
+</textField>
+<textField isBlankWhenNull="true">
+<reportElement x="222" y="22" width="111" height="24" style="Detail"/>
+<textFieldExpression>$F{status}</textFieldExpression>
+</textField>
+<textField isBlankWhenNull="true">
+<reportElement x="333" y="22" width="111" height="24" style="Detail"/>
+<textFieldExpression>$F{risk_level}</textFieldExpression>
+</textField>
+<textField isBlankWhenNull="true">
+<reportElement x="444" y="22" width="111" height="24" style="Detail"/>
+<textFieldExpression>$F{created_at}</textFieldExpression>
+</textField>
+<staticText>
+<reportElement mode="Opaque" x="0" y="52" width="555" height="1" backcolor="#999999"/>
+<text> </text>
+</staticText>
+<staticText>
+<reportElement x="0" y="66" width="185" height="22" style="Label"/>
+<text>Approver</text>
+</staticText>
+<staticText>
+<reportElement x="185" y="66" width="185" height="22" style="Label"/>
+<text>Decision</text>
+</staticText>
+<staticText>
+<reportElement x="370" y="66" width="185" height="22" style="Label"/>
+<text>Department</text>
+</staticText>
+<staticText>
+<reportElement mode="Opaque" x="0" y="90" width="555" height="1" backcolor="#999999"/>
+<text> </text>
+</staticText>
+</band>
+</groupHeader>
+</group>
+<title>
+<band height="152">
+<image onErrorType="Blank">
+<reportElement x="456" y="0" width="99" height="132"/>
+<imageExpression>"/home/ahmed-ezz-dev/images.jpeg"</imageExpression>
+</image>
+<staticText>
+<reportElement mode="Opaque" x="0" y="0" width="451" height="95" backcolor="#000000"/>
+<text> </text>
+</staticText>
+<staticText>
+<reportElement x="0" y="0" width="370" height="66" forecolor="#FFFFFF"/>
+<textElement textAlignment="Center">
+<font fontName="SansSerif" size="37" isBold="false"/>
+</textElement>
+<text>Investment</text>
+</staticText>
+<staticText>
+<reportElement x="157" y="66" width="249" height="29" style="SubTitle"/>
+<textElement>
+<font fontName="Serif" size="22" isBold="false"/>
+</textElement>
+<text>Cherry SubTitle</text>
+</staticText>
+<staticText>
+<reportElement mode="Opaque" x="0" y="100" width="451" height="32" backcolor="#CC0000"/>
+<text> </text>
+</staticText>
+<textField pattern="EEEEE dd MMMMM yyyy">
+<reportElement x="290" y="112" width="144" height="20" forecolor="#FFFFFF"/>
+<textElement textAlignment="Right">
+<font size="12"/>
+</textElement>
+<textFieldExpression>new java.util.Date()</textFieldExpression>
+</textField>
+<textField isBlankWhenNull="true">
+<reportElement x="0" y="134" width="555" height="18"/>
+<textElement textAlignment="Center"/>
+<textFieldExpression>
+(($P{notificationType} == null) ? "Investment" : $P{notificationType}) + " report | Request ID: " + (($P{investmentRequestId} == null) ? "" : $P{investmentRequestId})
+</textFieldExpression>
+</textField>
+</band>
+</title>
+<detail>
+<band height="24">
+<printWhenExpression>
+!($F{approver_name} == null || $F{approver_name}.isEmpty()) || !($F{approval_decision} == null || $F{approval_decision}.isEmpty())
+</printWhenExpression>
+<staticText>
+<reportElement mode="Opaque" x="0" y="0" width="555" height="24" backcolor="#F0EFEF">
+<printWhenExpression>$V{REPORT_COUNT}%2 == 0</printWhenExpression>
+</reportElement>
+<text> </text>
+</staticText>
+<textField isBlankWhenNull="true">
+<reportElement x="0" y="2" width="185" height="20" style="Detail"/>
+<textFieldExpression>$F{approver_name}</textFieldExpression>
+</textField>
+<textField isBlankWhenNull="true">
+<reportElement x="185" y="2" width="185" height="20" style="Detail"/>
+<textFieldExpression>$F{approval_decision}</textFieldExpression>
+</textField>
+<textField isBlankWhenNull="true">
+<reportElement x="370" y="2" width="185" height="20" style="Detail"/>
+<textFieldExpression>$F{department_name}</textFieldExpression>
+</textField>
+</band>
+</detail>
+<pageFooter>
+<band height="30">
+<staticText>
+<reportElement mode="Opaque" x="0" y="1" width="555" height="24" backcolor="#000000"/>
+<text> </text>
+</staticText>
+<textField evaluationTime="Report">
+<reportElement x="513" y="1" width="40" height="20" forecolor="#FFFFFF" style="ColumnHeader"/>
+<textElement verticalAlignment="Middle">
+<font fontName="Serif" size="10" isBold="false"/>
+</textElement>
+<textFieldExpression>" " + $V{PAGE_NUMBER}</textFieldExpression>
+</textField>
+<textField>
+<reportElement x="433" y="1" width="80" height="20" forecolor="#FFFFFF" style="ColumnHeader"/>
+<textElement textAlignment="Right" verticalAlignment="Middle">
+<font fontName="Serif" size="10" isBold="false"/>
+</textElement>
+<textFieldExpression>"Page "+$V{PAGE_NUMBER}+" of"</textFieldExpression>
+</textField>
+<textField pattern="EEEEE dd MMMMM yyyy">
+<reportElement x="2" y="2" width="197" height="20" forecolor="#FFFFFF" style="ColumnHeader"/>
+<textElement verticalAlignment="Middle">
+<font fontName="Serif" size="10" isBold="false"/>
+</textElement>
+<textFieldExpression>new java.util.Date()</textFieldExpression>
+</textField>
+</band>
+</pageFooter>
+</jasperReport>

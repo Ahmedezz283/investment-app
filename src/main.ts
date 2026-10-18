@@ -8,6 +8,11 @@ import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
+  const { loadSecretsFromVault } = await import('./vault/vault-bootstrap.js');
+  await loadSecretsFromVault();
+  
+  const { AppModule } = await import('./app.module.js');
+  
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   app.enableCors({

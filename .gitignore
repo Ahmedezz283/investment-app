@@ -59,4 +59,18 @@ pids
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 
-/frontend
+Vault TLS private keys
+
+*.key
+*.pem
+
+Vault configuration and sensitive files
+
+vault//config/tls/
+vault//data/
+vault/**/logs/
+
+Vault local state and backups
+
+vault//raft/
+vault//backup*

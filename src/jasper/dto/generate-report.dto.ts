@@ -4,8 +4,8 @@ export class GenerateReportDto {
   @IsString()
   templateName: string;
 
-  @IsIn(['pdf', 'xlsx', 'docx', 'html'])
-  format: 'pdf' | 'xlsx' | 'docx' | 'html' = 'pdf';
+  @IsIn(['png', 'pdf', 'xlsx', 'docx', 'html'])
+  format: 'png' | 'pdf' | 'xlsx' | 'docx' | 'html' = 'pdf';
 
   @IsObject()
   params: {

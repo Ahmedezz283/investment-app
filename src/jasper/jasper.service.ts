@@ -12,6 +12,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { promises as fs } from 'fs';
 import * as path from 'path';
+import { randomUUID } from 'crypto';
 import { JasperService } from 'node-jasper-ts/nest';
 import { JasperTemplate } from './jasper-template.entity.js';
 import { CreateJasperTemplateDto } from './dto/create-template.dto.js';
@@ -98,15 +99,45 @@ export class JasperReportService implements OnModuleInit {
         });
     }
 
-    private async ensureTemplateOnDisk(name: string): Promise<string> {
+
+    //find in db
+    // private async ensureTemplateOnDisk(name: string): Promise<string> {
+    //     const fileName = `${name}.jrxml`;
+    //     const diskPath = path.join(this.reportsDir, fileName);
+
+    //     const entity = await this.templateRepo.findOne({ where: { name } });
+    //     if (!entity) throw new NotFoundException(`Template "${name}" not found`);
+
+    //     await fs.writeFile(diskPath, entity.content);
+    //     return this.reportsDir;
+    // }
+
+
+    // Find on disk, then copy ONLY the requested template into its own temporary
+    // folder. node-jasper builds its report list from every .jrxml in dirReport and
+    // generate() uses the first one it finds, so passing the shared reports folder
+    // always rendered the first template alphabetically (investment) whatever
+    // templateName was. Returns the temporary folder; the caller must remove it.
+    private async prepareTemplateDir(name: string): Promise<string> {
+        if (!/^[A-Za-z0-9_-]+$/.test(name)) {
+            throw new BadRequestException(
+                'templateName may only contain letters, digits, "-" and "_"',
+            );
+        }
+
         const fileName = `${name}.jrxml`;
-        const diskPath = path.join(this.reportsDir, fileName);
+        const source = path.join(this.reportsDir, fileName);
 
-        const entity = await this.templateRepo.findOne({ where: { name } });
-        if (!entity) throw new NotFoundException(`Template "${name}" not found`);
+        try {
+            await fs.access(source);
+        } catch {
+            throw new NotFoundException(`Template "${name}" not found on disk (${fileName})`);
+        }
 
-        await fs.writeFile(diskPath, entity.content);
-        return this.reportsDir;
+        const runDir = path.join(process.cwd(), 'jasper-runs', randomUUID());
+        await fs.mkdir(runDir, { recursive: true });
+        await fs.copyFile(source, path.join(runDir, fileName));
+        return runDir;
     }
 
     async generate(dto: GenerateReportDto): Promise<Buffer> {
@@ -120,51 +151,57 @@ export class JasperReportService implements OnModuleInit {
             throw new NotFoundException(`No data for request ${id}`);
         }
 
-        const dirReport = await this.ensureTemplateOnDisk(dto.templateName);
+        const dirReport = await this.prepareTemplateDir(dto.templateName);
+        try {
 
-        const report = await this.jasperService.createReport({
-            conn: 'in_memory_json',
-            dirReport,
-        });
+            const report = await this.jasperService.createReport({
+                conn: 'in_memory_json',
+                dirReport,
+            });
 
-        const parameters = {
-            investmentRequestId: id,
-            notificationType: dto.params?.notificationType ?? 'Investment',
-        };
-        await report.loadParameters(parameters);
+            const parameters = {
+                investmentRequestId: id,
+                notificationType: dto.params?.notificationType ?? 'Investment',
+            };
+            await report.loadParameters(parameters);
 
-        const jasperReport = report as unknown as JasperReportHandle;
-        const exportOptions: JasperExportOptions = {
-            report: jasperReport.hierarchy.hierarchy.value.name,
-            data: parameters,
-            dataset: { data: rows },
-            query: 'data',
-        };
+            const jasperReport = report as unknown as JasperReportHandle;
+            const exportOptions: JasperExportOptions = {
+                report: jasperReport.hierarchy.hierarchy.value.name,
+                data: parameters,
+                dataset: { data: rows },
+                query: 'data',
+            };
 
-        let binary: unknown;
+            let binary: unknown;
 
-        switch (dto.format) {
-            case 'pdf':
-                binary = await jasperReport.jasperInstance.pdf(exportOptions);
-                break;
-            case 'xlsx':
-                binary = await jasperReport.jasperInstance.xlsx(exportOptions);
-                break;
-            case 'docx':
-                binary = await jasperReport.jasperInstance.docx(exportOptions);
-                break;
-            case 'html':
-                binary = await jasperReport.jasperInstance.html(exportOptions);
-                break;
-            default:
-                throw new BadRequestException(`Unsupported format: ${dto.format}`);
+            switch (dto.format) {
+                case 'pdf':
+                    binary = await jasperReport.jasperInstance.pdf(exportOptions);
+                    break;
+                case 'xlsx':
+                    binary = await jasperReport.jasperInstance.xlsx(exportOptions);
+                    break;
+                case 'docx':
+                    binary = await jasperReport.jasperInstance.docx(exportOptions);
+                    break;
+                case 'html':
+                    binary = await jasperReport.jasperInstance.html(exportOptions);
+                    break;
+                default:
+                    throw new BadRequestException(`Unsupported format: ${dto.format}`);
+            }
+
+            const output = Buffer.isBuffer(binary) ? binary : Buffer.from(binary as any);
+            if (!output.length) {
+                throw new InternalServerErrorException('Jasper generated an empty report');
+            }
+            return output;
+        } finally {
+            await fs.rm(dirReport, { recursive: true, force: true }).catch((err) =>
+                this.logger.warn(`Could not remove ${dirReport}: ${err}`),
+            );
         }
-
-        const output = Buffer.isBuffer(binary) ? binary : Buffer.from(binary as any);
-        if (!output.length) {
-            throw new InternalServerErrorException('Jasper generated an empty report');
-        }
-        return output;
     }
 
     // private async loadReportRows(investmentRequestId: string) {

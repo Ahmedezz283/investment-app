@@ -13,56 +13,83 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - app-network
+
+  jasper-db:
+   image: postgres:16
+   container_name: project-manager-jasper-db
+   environment:
+     POSTGRES_USER: jasper
+     POSTGRES_PASSWORD: jasper_password
+   ports:
+     - "5434:5432"
+   volumes:
+     - jasper_db_data_v2:/var/lib/postgresql/data
+   networks:
+     - app-network
+   healthcheck:
+     test: ["CMD-SHELL", "pg_isready -U jasper"]
+     interval: 5s
+     timeout: 5s
+     retries: 10
+
+  jasperserver-init:
+    image: agois/jasperserver-ce-init:7.8.0
+    container_name: project-manager-jasperserver-init
+    environment:
+      DB_HOST: jasper-db
+      DB_USER: jasper
+      DB_PASSWORD: jasper_password
+      DB_PORT: 5432
+      DB_NAME: jasperserver
+      POSTGRES_USER: jasper
+      POSTGRES_PASSWORD: jasper_password
+      JRS_DBCONFIG_REGEN: "true"
+    depends_on:
+      jasper-db:
+        condition: service_healthy
+    volumes:
+      - jasper_init_home:/usr/local/share/jasperserver
+      - jasper_keystore:/usr/local/share/jasperserver/keystore
+    command:
+      [
+        "/wait-for-it.sh",
+        "jasper-db:5432",
+        "-t",
+        "60",
+        "--",
+        "/entrypoint-cmdline-ce.sh",
+        "init"
+      ]
+    networks:
+      - app-network
+
+  jasperserver:
+    image: agois/jasperserver-ce:7.8.0
+    container_name: project-manager-jasperserver
+    ports:
+      - "8083:8080"
+      - "8445:8443"
+    environment:
+      DB_HOST: jasper-db
+      DB_USER: jasper
+      DB_PASSWORD: jasper_password
+      DB_PORT: 5432
+      DB_NAME: jasperserver
+    depends_on:
+      jasper-db:
+        condition: service_healthy
+      jasperserver-init:
+        condition: service_completed_successfully
+    volumes:
+      - jasper_webapp:/usr/local/tomcat/webapps/jasperserver
+      - jasper_init_home:/usr/local/share/jasperserver
+      - jasper_license:/usr/local/share/jasperserver/license
+      - jasper_keystore:/usr/local/share/jasperserver/keystore
+      - jasper_customization:/usr/local/share/jasperserver/customization
+    command: ["/entrypoint-ce.sh", "run"]
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d investment_db"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
-  # jasper-db:
-  #   image: postgres:16
-  #   container_name: project-manager-jasper-db
-  #   environment:
-  #     POSTGRES_USER: jasper
-  #     POSTGRES_PASSWORD: jasper
-  #     POSTGRES_DB: jasperserver
-  #   ports:
-  #     - "5434:5432"
-  #   volumes:
-  #     - jasper_db_data:/var/lib/postgresql/data
-  #   networks:
-  #     - app-network
-  #   restart: unless-stopped
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -U jasper -d jasperserver"]
-  #     interval: 5s
-  #     timeout: 5s
-  #     retries: 10
-
-  # jasper:
-  #   image: ahmedgalalfathy/jasper-reports-api:0.1
-  #   container_name: project-manager-jasper
-  #   ports:
-  #     - "127.0.0.1:8095:8080"
-  #   volumes:
-  #     - ./reports:/var/reports:ro
-  #   environment:
-  #     SPRING_PROFILES_ACTIVE: security-off
-  #     SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/investment_db
-  #     SPRING_DATASOURCE_USERNAME: postgres
-  #     SPRING_DATASOURCE_PASSWORD: ahmadezz@2005
-  #     JASPER_REPO_URL: jdbc:postgresql://jasper-db:5432/jasperserver
-  #     JASPER_REPO_USERNAME: jasper
-  #     JASPER_REPO_PASSWORD: jasper
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     jasper-db:
-  #       condition: service_healthy
-  #   networks:
-  #     - app-network
-  #   restart: unless-stopped
+    networks:
+      - app-network
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.0
@@ -77,7 +104,6 @@ services:
       - keycloak_data:/opt/keycloak/data
     networks:
       - app-network
-    restart: unless-stopped
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
@@ -87,7 +113,6 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
     networks:
       - app-network
-    restart: unless-stopped
     healthcheck:
       test: ["CMD", "bash", "-c", "echo > /dev/tcp/127.0.0.1/2181"]
       interval: 5s
@@ -110,11 +135,9 @@ services:
       KAFKA_MESSAGE_MAX_BYTES: 10485760
       KAFKA_REPLICA_FETCH_MAX_BYTES: 10485760
     depends_on:
-      zookeeper:
-        condition: service_healthy
+      - zookeeper
     networks:
       - app-network
-    restart: unless-stopped
     healthcheck:
       test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
       interval: 5s
@@ -130,11 +153,9 @@ services:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
     depends_on:
-      kafka:
-        condition: service_healthy
+      - kafka
     networks:
       - app-network
-    restart: unless-stopped
 
   flowable:
     image: flowable/all-in-one
@@ -147,15 +168,12 @@ services:
     volumes:
       - flowable_data:/opt/tomcat/flowable-db
     depends_on:
-      flowable-data-init:
-        condition: service_completed_successfully
-      kafka:
-        condition: service_healthy
+      - flowable-data-init
+      - kafka
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
       - app-network
-    restart: unless-stopped
 
   flowable-data-init:
     image: flowable/all-in-one
@@ -189,13 +207,38 @@ services:
       - keycloak
     networks:
       - app-network
-    restart: unless-stopped
+
+  vault:
+    image: hashicorp/vault:1.17
+    container_name: project-manager-vault
+    cap_add:
+      - IPC_LOCK
+    command: ["server"]
+    environment:
+      VAULT_ADDR: https://127.0.0.1:8200
+      VAULT_CACERT: /vault/config/tls/vault.crt
+    ports:
+      - "8200:8200"
+      - "8201:8201"
+    volumes:
+      - ./vault/config:/vault/config:ro
+      - vault-data:/vault/file
+    networks:
+      - app-network
 
 volumes:
   flowable_data:
   postgres_data:
   keycloak_data:
-  # jasper_db_data:
+  jasper_db_data:
+  jasper_db_data_v2:
+  jasper_init_home:
+  jasper_home:
+  jasper_webapp:
+  jasper_license:
+  jasper_keystore:
+  jasper_customization:
+  vault-data:
 
 networks:
   app-network:
