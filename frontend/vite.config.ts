@@ -27,6 +27,14 @@ export default defineConfig({
         target: 'http://localhost:3000',
         changeOrigin: true,
       },
+      '/gorules': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+      '/jasper': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
       '/notifications': {
         target: 'http://localhost:3000',
         changeOrigin: true,
@@ -39,4 +47,3 @@ export default defineConfig({
     },
   },
 });
-

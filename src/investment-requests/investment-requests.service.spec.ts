@@ -21,7 +21,7 @@ describe('InvestmentRequestsService', () => {
   const userRepository = { findOne: vi.fn() };
   const keycloakAdminService = { getUser: vi.fn() };
   const kafkaClient = { emit: vi.fn() };
-  const jasperTemplatesService = { render: vi.fn() };
+  const jasperReportService = { generate: vi.fn() };
   const configService = { get: vi.fn() };
 
   beforeEach(async () => {
@@ -38,7 +38,7 @@ describe('InvestmentRequestsService', () => {
     userRepository.findOne.mockResolvedValue({ keycloakId: 'keycloak-user-id' });
     keycloakAdminService.getUser.mockResolvedValue({ email: 'investor@example.com' });
     kafkaClient.emit.mockReturnValue(of(undefined));
-    jasperTemplatesService.render.mockResolvedValue(Buffer.from('%PDF-1.7 rendered'));
+    jasperReportService.generate.mockResolvedValue(Buffer.from('%PDF-1.7 rendered'));
     configService.get.mockReturnValue('investment');
 
     service = new InvestmentRequestsService(
@@ -49,7 +49,7 @@ describe('InvestmentRequestsService', () => {
       {} as never,
       keycloakAdminService as never,
       kafkaClient as never,
-      jasperTemplatesService as never,
+      jasperReportService as never,
       configService as never,
     );
   });
@@ -59,10 +59,13 @@ describe('InvestmentRequestsService', () => {
       message: 'Rendered report queued for email delivery',
     });
 
-    expect(jasperTemplatesService.render).toHaveBeenCalledWith('investment', {
-      investmentRequestId: requestId,
-      notificationType: 'APPROVAL',
-      rows,
+    expect(jasperReportService.generate).toHaveBeenCalledWith({
+      templateName: 'investment',
+      format: 'pdf',
+      params: {
+        investmentRequestId: requestId,
+        notificationType: 'APPROVAL',
+      },
     });
     expect(kafkaClient.emit).toHaveBeenCalledWith(
       'investment.report.rendered',

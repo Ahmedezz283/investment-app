@@ -8,6 +8,8 @@ import { InvestmentDetailPage } from './pages/InvestmentDetailPage';
 import { DepartmentsPage } from './pages/DepartmentsPage';
 import { UsersPage } from './pages/UsersPage';
 import { NotificationsPage } from './pages/NotificationsPage';
+import { GoRulesPage } from './pages/GoRulesPage';
+import { JasperPage } from './pages/JasperPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 
@@ -26,6 +28,8 @@ export function App() {
             <Route path="departments" element={<DepartmentsPage />} />
             <Route path="users" element={<UsersPage />} />
             <Route path="notifications" element={<NotificationsPage />} />
+            <Route path="gorules" element={<GoRulesPage />} />
+            <Route path="jasper" element={<JasperPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
@@ -36,4 +40,3 @@ export function App() {
 }
 
 export default App;
-

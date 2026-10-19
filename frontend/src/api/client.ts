@@ -115,6 +115,7 @@ export const investmentRequestsApi = {
     investorId: string;
     companyName: string;
     amount: number;
+    ruleName?: string;
   }): Promise<InvestmentRequest> => {
     const res = await api.post('/investment-requests', data);
     return res.data;
@@ -145,6 +146,10 @@ export const investmentRequestsApi = {
     const res = await api.post(`/investment-requests/tasks/${taskId}/complete`, { variables });
     return res.data;
   },
+  requestReport: async (id: string, templateName?: string) => {
+    const res = await api.post(`/investment-requests/${id}/report`, { templateName });
+    return res.data;
+  },
 };
 
 export const approvalsApi = {
@@ -157,8 +162,9 @@ export const approvalsApi = {
     });
     return res.data;
   },
+  // Fixed: was incorrectly using POST; the controller uses @Get()
   getForRequest: async (requestId: string): Promise<UserApproval[]> => {
-    const res = await api.post(`/investment-requests/${requestId}/approvals`);
+    const res = await api.get(`/investment-requests/${requestId}/approvals`);
     return res.data;
   },
 };
@@ -187,5 +193,44 @@ export const notificationsApi = {
   },
 };
 
-export default api;
+export const gorulesApi = {
+  getAll: async (): Promise<any[]> => {
+    const res = await api.get('/gorules');
+    return res.data;
+  },
+  upload: async (formData: FormData): Promise<any> => {
+    const res = await api.post('/gorules/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data;
+  },
+  evaluate: async (name: string, context: Record<string, any>): Promise<any> => {
+    const res = await api.post(`/gorules/${name}/evaluate`, { context });
+    return res.data;
+  },
+};
 
+export const jasperApi = {
+  listTemplates: async (): Promise<any[]> => {
+    const res = await api.get('/jasper/templates');
+    return res.data;
+  },
+  uploadTemplate: async (formData: FormData): Promise<any> => {
+    const res = await api.post('/jasper/templates', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data;
+  },
+  generate: async (data: {
+    templateName: string;
+    format: string;
+    parameters?: Record<string, any>;
+  }): Promise<Blob> => {
+    const res = await api.post('/jasper/generate', data, {
+      responseType: 'blob',
+    });
+    return res.data;
+  },
+};
+
+export default api;

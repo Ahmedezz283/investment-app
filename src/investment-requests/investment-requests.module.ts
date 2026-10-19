@@ -11,6 +11,7 @@ import { FlowableModule } from '../flowable/flowable.module.js';
 import { GoRulesModule } from '../gorules/gorules.module.js';
 import { KeycloakModule } from '../keycloak/keycloak-module.js';
 import { KafkaModule } from '../kafka/kafka.module.js';
+import { JasperModule } from '../jasper/jasper.module.js';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { KafkaModule } from '../kafka/kafka.module.js';
     GoRulesModule,
     KeycloakModule,
     KafkaModule,
+    JasperModule,
   ],
   controllers: [InvestmentRequestsController],
   providers: [InvestmentRequestsService],

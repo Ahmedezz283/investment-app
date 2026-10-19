@@ -1,17 +1,29 @@
 import { promises as fs } from 'fs';
-import { vi } from 'vitest';
-import { JasperService } from './jasper.service.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { JasperReportService } from './jasper.service.js';
 
 vi.mock('fs', () => ({
   promises: {
+    access: vi.fn(),
+    copyFile: vi.fn(),
     mkdir: vi.fn(),
+    rm: vi.fn(),
     writeFile: vi.fn(),
   },
 }));
 
-describe('JasperService', () => {
+describe('JasperReportService', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (fs.access as any).mockResolvedValue(undefined);
+    (fs.copyFile as any).mockResolvedValue(undefined);
+    (fs.mkdir as any).mockResolvedValue(undefined);
+    (fs.rm as any).mockResolvedValue(undefined);
+  });
+
   it('passes fetched investment rows to Jasper as a JSON datasource', async () => {
     const row = {
+      id: 'request-1',
       companyName: 'Acme Ltd',
       amount: 1250,
       status: 'PENDING_APPROVAL',
@@ -24,38 +36,45 @@ describe('JasperService', () => {
       loadParameters: vi.fn().mockResolvedValue(undefined),
       jasperInstance: {
         pdf: exportMethod,
-        xlsx: exportMethod,
-        docx: exportMethod,
-        html: exportMethod,
+        xlsx: vi.fn(),
+        docx: vi.fn(),
+        html: vi.fn(),
       },
       hierarchy: { hierarchy: { value: { name: 'investment' } } },
     };
     const templateRepo = {
-      findOne: vi.fn().mockResolvedValue({ content: Buffer.from('<jrxml/>') }),
+      findOne: vi.fn(),
+      save: vi.fn(),
+      find: vi.fn(),
     };
-    const jasperService = {
+    const jasperClient = {
       createReport: vi.fn().mockResolvedValue(report),
     };
     const investmentRequestRepo = {
       findOne: vi.fn().mockResolvedValue(row),
     };
-    // const service = new JasperService(
-    //   templateRepo as any,
-    //   jasperService as any,
-    //   investmentRequestRepo as any,
-    // );
+    const userApprovalRepo = {
+      find: vi.fn().mockResolvedValue([]),
+    };
 
-    // const result = await service.generate({
-    //   templateName: 'investment',
-    //   format: 'pdf',
-    //   params: { investmentRequestId: 'request-1' },
-    // });
+    const service = new JasperReportService(
+      templateRepo as any,
+      jasperClient as any,
+      investmentRequestRepo as any,
+      userApprovalRepo as any,
+    );
 
-    // expect(result).toEqual(rendered);
-    // expect(jasperService.createReport).toHaveBeenCalledWith({
-    //   conn: 'in_memory_json',
-    //   dirReport: expect.any(String),
-    // });
+    const result = await service.generate({
+      templateName: 'investment',
+      format: 'pdf',
+      params: { investmentRequestId: 'request-1', notificationType: 'Investment' },
+    });
+
+    expect(result).toEqual(rendered);
+    expect(jasperClient.createReport).toHaveBeenCalledWith({
+      conn: 'in_memory_json',
+      dirReport: expect.any(String),
+    });
     expect(exportMethod).toHaveBeenCalledWith({
       report: 'investment',
       data: {
@@ -78,6 +97,7 @@ describe('JasperService', () => {
       },
       query: 'data',
     });
-    expect(fs.writeFile).toHaveBeenCalled();
+    expect(fs.access).toHaveBeenCalledWith(expect.stringContaining('investment.jrxml'));
+    expect(fs.copyFile).toHaveBeenCalled();
   });
 });

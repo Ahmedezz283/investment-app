@@ -27,9 +27,10 @@ export class UserApprovalController {
       .filter(Boolean)
       .map((role) => role.trim().toLowerCase());
 
+    const hasInvestorRole = roles.some((role) => role === 'investor');
     const hasNonInvestorRole = roles.some((role) => !ignoredRoles.has(role));
 
-    if (!hasNonInvestorRole) {
+    if (hasInvestorRole || !hasNonInvestorRole) {
       throw new ForbiddenException('Investors cannot approve investment requests.');
     }
 

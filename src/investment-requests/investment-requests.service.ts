@@ -5,7 +5,7 @@ import { ClientKafka } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 import { Repository } from 'typeorm';
 import { Department } from '../department/departments.entity.js';
-import { InvestmentRequest, InvestmentRequestStatus, RiskLevel, } from './investment-requests.entity.js';
+import { InvestmentRequest, InvestmentRequestStatus, RiskLevel } from './investment-requests.entity.js';
 import { CreateInvestmentRequestDto } from './dto/create-investment-dto.js';
 import { UpdateInvestmentRequestDto } from './dto/update-investment-dto.js';
 import { FlowableService } from '../flowable/flowable.service.js';
@@ -14,7 +14,7 @@ import { User } from '../user/user-entity.js';
 import { UserApproval } from '../user_approval/user_approval.entity.js';
 import { KeycloakAdminService } from '../keycloak/keycloak-admin-service.js';
 import { NOTIFICATIONS_KAFKA_CLIENT } from '../kafka/kafka.module.js';
-//import { JasperTemplatesService } from '../jasper-templates/jasper-templates.service.js';
+import { JasperReportService } from '../jasper/jasper.service.js';
 
 interface InvestmentReportRow extends Record<string, unknown> {
   company_name: string;
@@ -41,9 +41,9 @@ export class InvestmentRequestsService {
     private readonly keycloakAdminService: KeycloakAdminService,
     @Inject(NOTIFICATIONS_KAFKA_CLIENT)
     private readonly kafkaClient: ClientKafka,
-    //private readonly jasperTemplatesService: JasperTemplatesService,
+    private readonly jasperReportService: JasperReportService,
     private readonly configService: ConfigService,
-  ) { }
+  ) {}
 
   create(dto: CreateInvestmentRequestDto): Promise<InvestmentRequest> {
     return this.investmentRequestsRepository.save(
@@ -256,20 +256,22 @@ export class InvestmentRequestsService {
       .getRawMany<InvestmentReportRow>();
 
     const reportType = notificationType ?? 'REPORT';
-    const selectedTemplate = templateName?.trim()
-      || this.configService.get<string>('JASPER_TEMPLATE_NAME', 'investment');
-    // const pdf = await this.jasperTemplatesService.render(selectedTemplate, {
-      // investmentRequestId: request.id,
-      // notificationType: reportType,
-      // rows,
-    // });
+    const selectedTemplate = templateName?.trim() || this.configService.get<string>('JASPER_TEMPLATE_NAME', 'investment');
+    const pdf = await this.jasperReportService.generate({
+      templateName: selectedTemplate,
+      format: 'pdf',
+      params: {
+        investmentRequestId: request.id,
+        notificationType: reportType,
+      },
+    });
 
     await firstValueFrom(
       this.kafkaClient.emit('investment.report.rendered', {
         investmentRequestId: request.id,
         recipientEmail: keycloakUser.email,
         notificationType: reportType,
-       // pdfBase64: pdf.toString('base64'),
+        pdfBase64: pdf.toString('base64'),
       }),
     );
 
