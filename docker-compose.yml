@@ -222,7 +222,8 @@ services:
       - "8201:8201"
     volumes:
       - ./vault/config:/vault/config:ro
-      - vault-data:/vault/file
+      - vault-data:/vault/data
+      - vault-logs:/vault/logs
     networks:
       - app-network
 
@@ -239,6 +240,7 @@ volumes:
   jasper_keystore:
   jasper_customization:
   vault-data:
+  vault-logs:
 
 networks:
   app-network:

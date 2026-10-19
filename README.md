@@ -44,6 +44,25 @@ $ npm run start:dev
 $ npm run start:prod
 ```
 
+## Investment workspace frontend
+
+Run the React/Vite frontend in a separate terminal after starting the API:
+
+```bash
+$ cd frontend
+$ npm install
+$ npm run dev
+```
+
+The development server runs at `http://localhost:5173` and proxies login,
+investment request, and user API calls to `http://localhost:3000`. Sign in with
+your configured Keycloak account; the workspace displays the identity from
+your access token instead of a sample user. To point the frontend at another API,
+copy `frontend/.env.example` to `frontend/.env.local` and set `VITE_API_URL` to
+the API origin. Preview and production builds use `http://localhost:3000` by
+default if `VITE_API_URL` is not set. To create a production build, run
+`npm run build` from `frontend`.
+
 ## Run tests
 
 ```bash
